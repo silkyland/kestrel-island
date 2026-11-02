@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-31T06:00:00Z",
+  "title": "Design System: Kestrel Island",
+  "extensions": {
+    "motion": [
+      {
+        "name": "island-expand",
+        "value": "280ms OutCubic",
+        "purpose": "Width and height of the visible native notch"
+      },
+      {
+        "name": "hover-peek",
+        "value": "220ms",
+        "purpose": "Avoid incidental expansion"
+      },
+      {
+        "name": "leave-delay",
+        "value": "180ms",
+        "purpose": "Allow pointer movement between controls"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Island icon button",
+      "kind": "button",
+      "description": "Native QML icon control; this HTML is a visual token preview only.",
+      "html": "<button class=\"island-control\" aria-label=\"Play\">Play</button>",
+      "css": ".island-control{border:0;border-radius:24px;background:#202023;color:#b8a1ff;width:48px;height:48px;font:12px sans-serif}.island-control:focus-visible{outline:2px solid #b8a1ff}"
+    }
+  ],
+  "narrative": {
+    "northStar": "A glance, then back to work",
+    "overview": "A black notch attached to the top edge expands into media, focus and system controls. The desktop remains the surrounding interface.",
+    "keyCharacteristics": [
+      "Concave shoulders",
+      "Quiet compact state",
+      "Native Wayland placement",
+      "Priority-based activity notices",
+      "One expanded context at a time"
+    ],
+    "rules": [
+      {
+        "name": "The visible shape owns input",
+        "body": "Pixels outside the notch pass through to the desktop.",
+        "section": "layout"
+      },
+      {
+        "name": "Hover to peek",
+        "body": "The user prefers the original 288 by 40 logical pixel compact size and hover expansion enabled by default. Only the explicit top Pin button keeps the island open; other clicks and navigation do not pin. Keep the visible settings button and monitor movement fixes.",
+        "section": "layout"
+      }
+    ],
+    "dos": [
+      "Use real media and measurements",
+      "Retain native keyboard accessibility",
+      "Keep opt-in task, microphone and notification states explicit; never force-expand for transient events"
+    ],
+    "donts": [
+      "Do not build a dashboard",
+      "Do not copy upstream branding"
+    ]
+  }
+}

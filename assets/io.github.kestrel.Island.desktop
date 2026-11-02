@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Kestrel Island
+Comment=A Dynamic Island for KDE Plasma
+Exec=kestrel-island
+Icon=kestrel-island
+Terminal=false
+Categories=Utility;Qt;KDE;
+StartupNotify=false
