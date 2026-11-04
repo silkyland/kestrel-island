@@ -106,3 +106,16 @@ The Music page now follows Vorssaint's notch player recipe (read from `vorssaint
 ### Cover tint (0.3.8, follow-up)
 
 `media.tint` reports the dominant colour of the local artwork (8×8 downsample, HSV-clamped for legibility on black, cached per path). Neutral or unreadable covers return empty and the player keeps the lavender accent — Vorssaint's "neutral covers keep them white" rule. Timeline progress and the live equalizer bars consume it.
+
+## UI polish (0.4)
+
+Visual polish only, adopting Vorssaint's island UI strengths per `docs/PLAN-UI.md`; no features, adapters or data flows changed.
+
+- One token source: `qml/Theme.qml` singleton owns all colours, cover-tint computation with contrast clamps, and `dur(ms)` — the single motion gate (`animations` flag × KDE `AnimationDurationFactor`, read once at startup, clamped [0.25, 1]). All hard-coded hex literals and `island.animations ?` duration gates are gone from shipped QML.
+- Dark island controls: `IslandStepper` (restyled bounded SpinBox, −/+ faces, Up/Down keys), `IslandCheck` (restyled CheckBox; also replaces the Switches) and `IslandSelect` (restyled ComboBox closed face, delegate and popup) remove every light KDE control face while keeping `focusMinutes`, `displaySelector` and all other `objectName`s, Accessible names, Theme.tint focus rings and strict min/max bounds. The notifications text field uses a dark raised face.
+- `EdgeFade` draws 16 px surface-to-transparent gradients at the top/bottom of the Settings, Tasks, Notifications and System scrolling areas, visible only while more content lies beyond that edge; verified seamless on the solid surface (U3).
+- System page (V5): 2-column `MetricCard` grid — CPU, RAM, each GPU, each disk — with title, symbol, value, 3 px meter and subtitle folding in temperatures; value and meter turn `Theme.warn` at ≥85% load or <10% disk free. The previous detailed rows (CPU history, VRAM/power, swap, device/filesystem) stay behind an in-memory Details disclosure. Collapsed geometry is 520×480; details expand to 560×568 with the input mask following as usual. `systemTemperatures` moved onto the card grid; `TemperatureReading.qml` was removed.
+- Escape now closes the inner layer first (V10): pages 4–6 step back to Tools before a second Escape collapses. The compact title cross-fades 140 ms on activity/notice changes with tabular figures (V8/V9 transition, without layout change).
+- Tests: `escapeStepsBackToToolsBeforeCollapsing` covers pages 4–6 and the collapse; the System details geometry (560×568) and footer bound are regression-checked; all four CTest suites pass. All eight `scripts/ui-shots.sh` pages were rendered and reviewed: no clipped footers, no light control faces, no hard-cut scroll edges.
+
+Acceptance boundary: no live-session check yet (M4-T1/T2), no attention-state screenshot fixture (logic covered by bound/threshold review), and the known `MediaView` recursive-rearrange warning is unchanged. The 288×40 compact footprint, peek geometry, LayerTop stacking and all opt-in gates (notifications/validated, tasks, audio feedback) are untouched.

@@ -137,8 +137,8 @@ private slots:
     QTRY_VERIFY(root->property("expanded").toBool());
     QVERIFY(!root->property("pinned").toBool());
     QCOMPARE(root->property("page").toInt(), 2);
-    QTRY_COMPARE(surface->height(), 568.0);
-    QTRY_COMPARE(surface->width(), 560.0);
+    QTRY_COMPARE(surface->height(), 480.0);
+    QTRY_COMPARE(surface->width(), 520.0);
     QVERIFY(QMetaObject::invokeMethod(root, "collapse"));
     QTest::qWait(350);
     QVERIFY(!root->property("expanded").toBool());
@@ -219,7 +219,7 @@ private slots:
     auto *navigation = root->findChild<QQuickItem *>("islandNavigation");
     auto *footer = root->findChild<QQuickItem *>("audioFooter");
     QVERIFY(surface && navigation && footer);
-    const QList<int> heights{304, 384, 568, 360, 336, 384, 384, 288};
+    const QList<int> heights{304, 384, 480, 360, 336, 384, 384, 288};
     for (int page = 0; page < 8; ++page) {
       root->setProperty("page", page);
       QTRY_COMPARE(surface->height(), double(heights[page]));
@@ -232,6 +232,24 @@ private slots:
       QVERIFY2(bottom.y() <= surface->height() - 8,
                qPrintable(QString("Footer clipped on page %1").arg(page)));
     }
+    // Opening System details grows the surface back to the detailed size.
+    root->setProperty("page", 2);
+    auto *system = root->findChild<QQuickItem *>("systemTemperatures");
+    QVERIFY(system);
+    auto *systemPage = system;
+    while (systemPage && !systemPage->property("details").isValid())
+      systemPage = systemPage->parentItem();
+    QVERIFY(systemPage);
+    systemPage->setProperty("details", true);
+    QTRY_COMPARE(surface->height(), 568.0);
+    QTRY_COMPARE(surface->width(), 560.0);
+    QTest::qWait(30);
+    QVERIFY2(
+        footer->mapToItem(surface, QPointF(footer->width(), footer->height()))
+                .y() <= surface->height() - 8,
+        "Footer clipped on the expanded-details System page");
+    systemPage->setProperty("details", false);
+    QTRY_COMPARE(surface->height(), 480.0);
     for (const auto &name : {"awakePage", "tasksPage", "notificationsPage"}) {
       auto *page = root->findChild<QObject *>(name);
       QVERIFY(page);

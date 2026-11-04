@@ -53,8 +53,8 @@ Window {
         id: surface
         anchors.horizontalCenter: parent.horizontalCenter
         objectName: "islandSurface"
-        width: root.expanded ? (root.page === 2 ? 560 : 456) : (root.peek ? 316 : 288)
-        height: root.expanded ? (root.page === 2 ? 568 : root.page === 3 ? 360 : root.page === 1 || root.page === 5 || root.page === 6 ? 384 : root.page === 4 ? 336 : root.page === 0 ? 304 : 288) : (root.peek ? 54 : 40)
+        width: root.expanded ? (root.page === 2 ? (systemPage.details ? 560 : 520) : 456) : (root.peek ? 316 : 288)
+        height: root.expanded ? (root.page === 2 ? (systemPage.details ? 568 : 480) : root.page === 3 ? 360 : root.page === 1 || root.page === 5 || root.page === 6 ? 384 : root.page === 4 ? 336 : root.page === 0 ? 304 : 288) : (root.peek ? 54 : 40)
         clip: true
         Behavior on width { NumberAnimation { duration: Theme.dur(280); easing.type: Easing.OutCubic } }
         Behavior on height { NumberAnimation { duration: Theme.dur(280); easing.type: Easing.OutCubic } }
@@ -265,7 +265,7 @@ Window {
 
                 FocusView {}
 
-                SystemView {}
+                SystemView { id: systemPage }
                 Item {
                     ScrollView {
                         id: settingsScroll

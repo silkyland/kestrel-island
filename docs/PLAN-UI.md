@@ -189,23 +189,25 @@ Kestrel Island is a native KDE Dynamic Island (C++20 / Qt Quick / LayerShellQt, 
 - **Objective:** convert the remaining pages to tokens and dark controls.
 - **Depends on:** M1.
 - **Tasks:**
-  - [ ] `M2-T1` Spike U2 follow-up: confirm whether to react live to factor changes; default decision: read at startup and on settings change only. Record in DESIGN.md.
-  - [ ] `M2-T2` `qml/IslandStepper.qml`, `IslandCheck.qml`; update `FocusView.qml`, Settings in `Main.qml`; keep `focusMinutes`, `pomodoroMode`, `startFocus`, `displaySelector` objectNames.
-  - [ ] `M2-T3` Convert `FocusView.qml`, `KeepAwakeView.qml`, `TasksView.qml`, `NotificationsView.qml`, `ToolsView.qml`, `MoveTarget.qml` to tokens; text field dark background in NotificationsView.
-  - [ ] `M2-T4` `qml/EdgeFade.qml`; apply to Settings ScrollView (`Main.qml:235`), `TasksView`/`NotificationsView` ListViews, SystemView.
-  - [ ] `M2-T5` Escape steps back one level (`Main.qml:46`) plus test in `tests/test_backend.cpp`.
-  - [ ] `M2-T6` Compact title cross-fade (decision 9).
+  - [x] `M2-T1` Spike U2 follow-up: confirm whether to react live to factor changes; default decision: read at startup and on settings change only. Record in DESIGN.md.
+  - [x] `M2-T2` `qml/IslandStepper.qml`, `IslandCheck.qml`; update `FocusView.qml`, Settings in `Main.qml`; keep `focusMinutes`, `pomodoroMode`, `startFocus`, `displaySelector` objectNames.
+  - [x] `M2-T3` Convert `FocusView.qml`, `KeepAwakeView.qml`, `TasksView.qml`, `NotificationsView.qml`, `ToolsView.qml`, `MoveTarget.qml` to tokens; text field dark background in NotificationsView.
+  - [x] `M2-T4` `qml/EdgeFade.qml`; apply to Settings ScrollView (`Main.qml:235`), `TasksView`/`NotificationsView` ListViews, SystemView.
+  - [x] `M2-T5` Escape steps back one level (`Main.qml:46`) plus test in `tests/test_backend.cpp`.
+  - [x] `M2-T6` Compact title cross-fade (decision 9).
 - **Exit criteria:** `ctest` pass (including a test: Escape on page 5 gives page 7, second Escape collapses); `scripts/ui-shots.sh` images viewed for focus, settings, awake, tasks, notifications, tools show no light native controls.
+- Progress notes: done (commit `b102184`). `IslandStepper`/`IslandCheck`/`IslandSelect` are restyled SpinBox/CheckBox/ComboBox templates rather than from-scratch items — they keep the platform keyboard, bounds and `valueModified`/`activated`/`toggled` semantics while every visible face is dark. `IslandSelect` was needed: the settings screenshot still showed a light ComboBox face (K5). Deviations: the stepper is non-editable (decision 7's minus/value/plus form); the Tasks/Notifications Switches became checks (same toggle semantics); Escape uses `navigate(7)` so Tools becomes the remembered page, matching the Back buttons.
 
 ### M3: System cards  (effort: M)
 - **Objective:** decision 6.
 - **Depends on:** M1 (tokens). **Entry:** M1 exit.
 - **Tasks:**
-  - [ ] `M3-T1` `qml/MetricCard.qml` (title, symbol, value, meter, attention).
-  - [ ] `M3-T2` Rewrite top of `qml/SystemView.qml` as a 2-column grid using `island.statistics`; keep detail rows behind a Details disclosure; keep `systemTemperatures` objectName or move it into cards and update tests if referenced.
-  - [ ] `M3-T3` Adjust surface sizes in `qml/Main.qml:54-55` for page 2 and update `tests/test_backend.cpp:216` heights list; footer test must still pass.
-  - [ ] `M3-T4` Verify U3 (overlay seam) in screenshots; if a seam shows, set overlay height to 12 and opacity 0.95.
+  - [x] `M3-T1` `qml/MetricCard.qml` (title, symbol, value, meter, attention).
+  - [x] `M3-T2` Rewrite top of `qml/SystemView.qml` as a 2-column grid using `island.statistics`; keep detail rows behind a Details disclosure; keep `systemTemperatures` objectName or move it into cards and update tests if referenced.
+  - [x] `M3-T3` Adjust surface sizes in `qml/Main.qml:54-55` for page 2 and update `tests/test_backend.cpp:216` heights list; footer test must still pass.
+  - [x] `M3-T4` Verify U3 (overlay seam) in screenshots; if a seam shows, set overlay height to 12 and opacity 0.95.
 - **Exit criteria:** `ctest` pass; `ui-shots.sh` system image shows all of CPU, RAM, both GPUs, disk without scrolling in collapsed mode; with fake 90% load fixture the card shows warn color; units unchanged.
+- Progress notes: done (M3+M4-T3 commit). Collapsed System is 520x480 with a 2-column `MetricCard` grid (CPU, RAM, each GPU, each disk); `systemTemperatures` moved onto the card grid and `TemperatureReading.qml` was removed — temperatures live in card subtitles (CPU/GPU direct, NVMe folded into disk cards by index, extra controllers get their own cards). Deviations: disk meter base tint is Theme.secondary (not warn) so the warn attention state stays distinguishable; the GPU card subtitle elides long names — full name remains in Details. A geometry regression now also checks details-open 560x568 and back. No attention screenshot fixture was built (optional per exit criteria); attention logic is `percent >= 85` for meters and `available/total < 0.10` for disks.
 
 ### M4: Live acceptance and docs  (effort: S)
 - **Objective:** real-session proof and documentation.
@@ -213,7 +215,7 @@ Kestrel Island is a native KDE Dynamic Island (C++20 / Qt Quick / LayerShellQt, 
 - **Tasks:**
   - [ ] `M4-T1` Copy the build to `~/.local/bin/kestrel-island` (backup `.bak` first) and `systemctl --user restart app-io.github.kestrel.Island@autostart.service` (this is the user-approved procedure from the earlier session; ask again before overwriting).
   - [ ] `M4-T2` Manual E2E (see §10).
-  - [ ] `M4-T3` Update `DESIGN.md`, `docs/IMPLEMENTATION.md` (new 0.4 section), `docs/ARCHITECTURE.md` (Theme/Motion).
+  - [x] `M4-T3` Update `DESIGN.md`, `docs/IMPLEMENTATION.md` (new 0.4 section), `docs/ARCHITECTURE.md` (Theme/Motion).
 - **Exit criteria:** every manual step in §10 passes; no regression in compact 288x40 mask (`--check-session` after quitting the service, per `AGENTS.md`).
 
 ## 9. Risk register (pre-mortem)
