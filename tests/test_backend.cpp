@@ -260,6 +260,33 @@ private slots:
     QVERIFY(!root->property("expanded").toBool());
     backend.setPreferredPage(0);
   }
+  void escapeStepsBackToToolsBeforeCollapsing() {
+    Backend backend(nullptr, false);
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("island", &backend);
+    engine.rootContext()->setContextProperty("previewMode", true);
+    engine.rootContext()->setContextProperty("startExpanded", true);
+    engine.load(QUrl("qrc:/qml/Main.qml"));
+    QVERIFY(!engine.rootObjects().isEmpty());
+    auto *root = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
+    root->show();
+    QVERIFY(QTest::qWaitForWindowExposed(root));
+    QTest::qWait(350);
+    for (int page = 4; page <= 6; ++page) {
+      root->setProperty("page", page);
+      root->setProperty("expanded", true);
+      QTest::qWait(30);
+      QTest::keyClick(root, Qt::Key_Escape);
+      QTRY_COMPARE(root->property("page").toInt(), 7);
+      QVERIFY2(root->property("expanded").toBool(),
+               qPrintable(QString("Escape on page %1 collapsed instead of "
+                                  "returning to Tools")
+                              .arg(page)));
+    }
+    QTest::keyClick(root, Qt::Key_Escape);
+    QTRY_VERIFY(!root->property("expanded").toBool());
+    backend.setPreferredPage(0);
+  }
   void animationsOffMeansNoTransitions() {
     const auto oldOrganization = QCoreApplication::organizationName();
     const auto oldApplication = QCoreApplication::applicationName();

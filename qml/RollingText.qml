@@ -2,7 +2,7 @@ import QtQuick
 Row {
     id: roll
     property string text: ""
-    property color color: "#f5f5f7"
+    property color color: Theme.ink
     property int pixelSize: 44
     property int weight: Font.Light
     property bool animate: true
@@ -26,7 +26,7 @@ Row {
                 previous = shown; shown = value
                 slide.restart()
             }
-            NumberAnimation { id: slide; target: cell; property: "progress"; from: 0; to: 1; duration: island.animations ? 260 : 0; easing.type: Easing.OutCubic }
+            NumberAnimation { id: slide; target: cell; property: "progress"; from: 0; to: 1; duration: Theme.dur(260); easing.type: Easing.OutCubic }
             Text {
                 id: outgoing
                 textFormat: Text.PlainText

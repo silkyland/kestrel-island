@@ -1,7 +1,7 @@
 import QtQuick
 Canvas {
     property var samples: []
-    property color tint: "#b8a1ff"
+    property color tint: Theme.accent
     onSamplesChanged: requestPaint()
     onWidthChanged: requestPaint()
     onHeightChanged: requestPaint()

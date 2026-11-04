@@ -43,7 +43,9 @@ Window {
         function onSettingsRequested() { root.showSettings() }
         function onTimerFinished() { /* Completion is a compact notice, never a focus grab. */ }
     }
-    Shortcut { sequence: "Escape"; onActivated: root.collapse() }
+    // Escape closes the inner layer first: tool child pages step back to
+    // Tools, everything else collapses the island.
+    Shortcut { sequence: "Escape"; onActivated: { if (root.page >= 4 && root.page <= 6) root.navigate(7); else root.collapse() } }
     Timer { id: peekDelay; interval: 120; onTriggered: if (!root.expanded && !root.hoverBlocked && island.hoverExpand && island.animations) root.peek = true }
     Timer { id: leaveDelay; interval: 180; onTriggered: if (!root.pinned) root.expanded = false }
 
@@ -126,11 +128,35 @@ Window {
                     visible: compactArtwork.status !== Image.Ready
                 }
             }
-            Text { textFormat: Text.PlainText;
+            Item {
+                // Compact title cross-fades when the activity or notice
+                // changes; numerals use tabular figures (decision 9).
                 Layout.fillWidth: true
-                text: island.activity.notice.title || island.activity.selected.title || "Kestrel Island"
-                color: root.ink; font.pixelSize: 12; font.weight: Font.Medium
-                elide: Text.ElideRight
+                implicitHeight: compactTitle.implicitHeight
+                property string value: island.activity.notice.title || island.activity.selected.title || "Kestrel Island"
+                property string shown: value
+                onValueChanged: {
+                    if (shown === value) return
+                    previousTitle.text = shown
+                    shown = value
+                    titleSwap.restart()
+                }
+                component CompactTitle: Text {
+                    textFormat: Text.PlainText
+                    width: parent.width
+                    color: root.ink
+                    font.pixelSize: 12
+                    font.weight: Font.Medium
+                    font.features: {"tnum": 1}
+                    elide: Text.ElideRight
+                }
+                CompactTitle { id: previousTitle; opacity: 0 }
+                CompactTitle { id: compactTitle; text: parent.shown; opacity: 1 - previousTitle.opacity }
+                SequentialAnimation {
+                    id: titleSwap
+                    PropertyAction { target: previousTitle; property: "opacity"; value: 1 }
+                    NumberAnimation { target: previousTitle; property: "opacity"; to: 0; duration: Theme.dur(140) }
+                }
             }
             Row {
                 Layout.preferredWidth: 21
@@ -240,61 +266,62 @@ Window {
                 FocusView {}
 
                 SystemView {}
-                ScrollView {
-                    id: settingsScroll
-                    clip: true
-                    contentWidth: availableWidth
-                    ColumnLayout {
-                    width: settingsScroll.availableWidth
-                    objectName: "settingsPage"
-                    spacing: 4
-                    Text { textFormat: Text.PlainText; text: "Island settings"; color: root.ink; font.pixelSize: 20; font.weight: Font.DemiBold }
-                    RowLayout {
-                        IslandAction { text: "Keep awake"; symbol: "coffee"; onClicked: { root.page=4; } }
-                        IslandAction { text: "Tasks"; symbol: "terminal"; onClicked: { root.page=5; } }
-                        IslandAction { text: "Inbox"; symbol: "bell"; onClicked: { root.page=6; } }
-                    }
-                    Text { textFormat: Text.PlainText; text: "POSITION"; color: root.secondary; font.pixelSize: 10; font.weight: Font.DemiBold; font.letterSpacing: 1; Layout.topMargin: 6 }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { textFormat: Text.PlainText; text: "Display"; color: root.secondary; font.pixelSize: 12; Layout.preferredWidth: 70 }
-                        ComboBox {
-                            id: displaySelector
-                            objectName: "displaySelector"
+                Item {
+                    ScrollView {
+                        id: settingsScroll
+                        anchors.fill: parent
+                        clip: true
+                        contentWidth: availableWidth
+                        ColumnLayout {
+                        width: settingsScroll.availableWidth
+                        objectName: "settingsPage"
+                        spacing: 4
+                        Text { textFormat: Text.PlainText; text: "Island settings"; color: root.ink; font.pixelSize: 20; font.weight: Font.DemiBold }
+                        RowLayout {
+                            IslandAction { text: "Keep awake"; symbol: "coffee"; onClicked: { root.page=4; } }
+                            IslandAction { text: "Tasks"; symbol: "terminal"; onClicked: { root.page=5; } }
+                            IslandAction { text: "Inbox"; symbol: "bell"; onClicked: { root.page=6; } }
+                        }
+                        Text { textFormat: Text.PlainText; text: "POSITION"; color: root.secondary; font.pixelSize: 10; font.weight: Font.DemiBold; font.letterSpacing: 1; Layout.topMargin: 6 }
+                        RowLayout {
                             Layout.fillWidth: true
-                            implicitHeight: 32
-                            model: island.displays
-                            currentIndex: island.displays.indexOf(island.display)
-                            displayText: currentText || "Default display"
-                            onActivated: island.chooseDisplay(currentText)
-                            palette.button: Theme.raised; palette.base: Theme.raised; palette.text: root.ink; palette.buttonText: root.ink; palette.window: Theme.raised; palette.highlight: Theme.selectedFill; palette.highlightedText: root.ink
-                            Accessible.name: "Island display"
+                            Text { textFormat: Text.PlainText; text: "Display"; color: root.secondary; font.pixelSize: 12; Layout.preferredWidth: 70 }
+                            IslandSelect {
+                                id: displaySelector
+                                objectName: "displaySelector"
+                                Layout.fillWidth: true
+                                implicitHeight: 32
+                                model: island.displays
+                                currentIndex: island.displays.indexOf(island.display)
+                                displayText: currentText || "Default display"
+                                onActivated: island.chooseDisplay(currentText)
+                                Accessible.name: "Island display"
+                            }
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Text { textFormat: Text.PlainText; text: "Top offset"; color: root.secondary; font.pixelSize: 12; Layout.preferredWidth: 70 }
+                            IslandStepper {
+                                from: 0; to: 120; stepSize: 8; value: island.topGap
+                                implicitHeight: 32
+                                onValueModified: island.setTopGap(value)
+                                Accessible.name: "Top offset in pixels"
+                            }
+                            Text { textFormat: Text.PlainText; text: "px"; color: root.secondary; font.pixelSize: 12 }
+                        }
+                        Text { textFormat: Text.PlainText; text: "BEHAVIOR"; color: root.secondary; font.pixelSize: 10; font.weight: Font.DemiBold; font.letterSpacing: 1; Layout.topMargin: 8 }
+                        IslandCheck {
+                            text: "Peek on hover"
+                            checked: island.hoverExpand
+                            implicitHeight: 30
+                            onToggled: island.setHoverExpand(checked)
+                        }
+                        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: "Hover gives a peek. Click to open; it stays until you close it.\nDrag the compact title to another display."; color: root.secondary; font.pixelSize: 11; wrapMode: Text.WordWrap }
+                        IslandCheck { text: "Audio / microphone feedback"; checked: island.audioFeedback; onToggled: island.setAudioFeedback(checked) }
+                        Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: "New activity sources are optional. Music keeps its automatic source selection."; color: root.secondary; font.pixelSize: 11; wrapMode: Text.WordWrap }
                         }
                     }
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text { textFormat: Text.PlainText; text: "Top offset"; color: root.secondary; font.pixelSize: 12; Layout.preferredWidth: 70 }
-                        SpinBox {
-                            from: 0; to: 120; stepSize: 8; value: island.topGap
-                            implicitHeight: 32
-                            onValueModified: island.setTopGap(value)
-                            palette.button: Theme.raised; palette.base: Theme.raised; palette.text: root.ink; palette.buttonText: root.ink
-                            Accessible.name: "Top offset in pixels"
-                        }
-                        Text { textFormat: Text.PlainText; text: "px"; color: root.secondary; font.pixelSize: 12 }
-                    }
-                    Text { textFormat: Text.PlainText; text: "BEHAVIOR"; color: root.secondary; font.pixelSize: 10; font.weight: Font.DemiBold; font.letterSpacing: 1; Layout.topMargin: 8 }
-                    CheckBox {
-                        text: "Peek on hover"
-                        checked: island.hoverExpand
-                        implicitHeight: 30
-                        onToggled: island.setHoverExpand(checked)
-                        palette.windowText: root.ink; palette.buttonText: root.ink; palette.text: root.ink
-                    }
-                    Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: "Hover gives a peek. Click to open; it stays until you close it.\nDrag the compact title to another display."; color: root.secondary; font.pixelSize: 11; wrapMode: Text.WordWrap }
-                    CheckBox { text: "Audio / microphone feedback"; checked: island.audioFeedback; palette.windowText: root.ink; onToggled: island.setAudioFeedback(checked) }
-                    Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: "New activity sources are optional. Music keeps its automatic source selection."; color: root.secondary; font.pixelSize: 11; wrapMode: Text.WordWrap }
-                    }
+                    EdgeFade { anchors.fill: parent; target: settingsScroll.contentItem }
                 }
                 KeepAwakeView { objectName: "awakePage"; onBackRequested: root.navigate(7) }
                 TasksView { objectName: "tasksPage"; onBackRequested: root.navigate(7) }

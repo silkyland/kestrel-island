@@ -20,14 +20,14 @@ Window {
     Rectangle {
         anchors.centerIn: parent
         width: 320; height: 112; radius: 24
-        color: "#080809"
+        color: Theme.surface
         border.width: 2
-        border.color: dropArea.containsDrag ? "#b8a1ff" : "#55555d"
+        border.color: dropArea.containsDrag ? Theme.accent : Theme.faint
         Column {
             anchors.centerIn: parent
             spacing: 10
-            Text { textFormat: Text.PlainText; anchors.horizontalCenter: parent.horizontalCenter; text: "Move island to " + target.displayName; color: "#f5f5f7"; font.pixelSize: 18; font.weight: Font.DemiBold }
-            Text { textFormat: Text.PlainText; anchors.horizontalCenter: parent.horizontalCenter; text: "Release anywhere on this display · Esc to cancel"; color: "#a7a7af"; font.pixelSize: 12 }
+            Text { textFormat: Text.PlainText; anchors.horizontalCenter: parent.horizontalCenter; text: "Move island to " + target.displayName; color: Theme.ink; font.pixelSize: 18; font.weight: Font.DemiBold }
+            Text { textFormat: Text.PlainText; anchors.horizontalCenter: parent.horizontalCenter; text: "Release anywhere on this display · Esc to cancel"; color: Theme.secondary; font.pixelSize: 12 }
         }
     }
 }

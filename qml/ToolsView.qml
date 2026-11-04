@@ -4,7 +4,7 @@ import QtQuick.Layouts
 ColumnLayout {
     signal openPage(int page)
     spacing: 8
-    Text { textFormat: Text.PlainText; text: "Tools"; color: "#f5f5f7"; font.pixelSize: 20; font.weight: Font.DemiBold }
+    Text { textFormat: Text.PlainText; text: "Tools"; color: Theme.ink; font.pixelSize: 20; font.weight: Font.DemiBold }
     Repeater {
         model: [
             {title: "Keep awake", symbol: "coffee", detail: island.awake.snapshot.state === "active" ? "Active · timed session" : "Keep the display and session awake", page: 4},
@@ -17,8 +17,8 @@ ColumnLayout {
             Layout.fillWidth: true
             implicitHeight: 58
             radius: 16
-            color: tap.pressed ? "#2a2a2f" : hover.hovered ? "#222226" : "#19191c"
-            Behavior on color { ColorAnimation { duration: island.animations ? 120 : 0 } }
+            color: tap.pressed ? Theme.raisedPressed : hover.hovered ? Theme.raisedHover : Theme.raised
+            Behavior on color { ColorAnimation { duration: Theme.dur(120) } }
             HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
             TapHandler { id: tap; onTapped: openPage(card.modelData.page) }
             Accessible.role: Accessible.Button
@@ -29,15 +29,15 @@ ColumnLayout {
                 spacing: 12
                 Rectangle {
                     Layout.preferredWidth: 34; Layout.preferredHeight: 34
-                    radius: 11; color: "#2a2438"
+                    radius: 11; color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.14)
                     Image { anchors.centerIn: parent; width: 18; height: 18; source: "qrc:/assets/icons/" + card.modelData.symbol + ".svg"; sourceSize.width: 18; sourceSize.height: 18 }
                 }
                 ColumnLayout {
                     Layout.fillWidth: true; spacing: 2
-                    Text { textFormat: Text.PlainText; text: card.modelData.title; color: "#f5f5f7"; font.pixelSize: 13; font.weight: Font.Medium }
-                    Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: card.modelData.detail; color: "#a7a7af"; font.pixelSize: 11; elide: Text.ElideRight }
+                    Text { textFormat: Text.PlainText; text: card.modelData.title; color: Theme.ink; font.pixelSize: 13; font.weight: Font.Medium }
+                    Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: card.modelData.detail; color: Theme.secondary; font.pixelSize: 11; elide: Text.ElideRight }
                 }
-                Text { textFormat: Text.PlainText; text: "›"; color: hover.hovered ? "#b8a1ff" : "#74747c"; font.pixelSize: 20 }
+                Text { textFormat: Text.PlainText; text: "›"; color: hover.hovered ? Theme.accent : Theme.faint; font.pixelSize: 20 }
             }
         }
     }
