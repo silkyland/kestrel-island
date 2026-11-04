@@ -17,7 +17,7 @@ Button {
     icon.height: 20
     display: AbstractButton.IconOnly
     Accessible.name: text
-    Behavior on implicitWidth { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+    Behavior on implicitWidth { NumberAnimation { duration: island.animations ? 180 : 0; easing.type: Easing.OutCubic } }
     // Render our bundled SVG directly: KDE's platform Button delegate may
     // ignore icon.source when icon.name is empty.
     contentItem: Row {
@@ -48,7 +48,7 @@ Button {
         color: control.down ? "#4a4a53" : control.prominent ? (control.hovered ? "#6e57c2" : "#5a44a8") : control.checked || control.selected ? "#3b324f" : control.hovered || control.activeFocus ? "#2e2e34" : "transparent"
         border.width: control.activeFocus ? 2 : control.checked || control.selected ? 1 : 0
         border.color: "#b8a1ff"
-        Behavior on color { ColorAnimation { duration: 120 } }
+        Behavior on color { ColorAnimation { duration: island.animations ? 120 : 0 } }
     }
     ToolTip.visible: hovered && text.length > 0
     ToolTip.text: text

@@ -18,7 +18,7 @@ ColumnLayout {
             implicitHeight: 58
             radius: 16
             color: tap.pressed ? "#2a2a2f" : hover.hovered ? "#222226" : "#19191c"
-            Behavior on color { ColorAnimation { duration: 120 } }
+            Behavior on color { ColorAnimation { duration: island.animations ? 120 : 0 } }
             HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
             TapHandler { id: tap; onTapped: openPage(card.modelData.page) }
             Accessible.role: Accessible.Button

@@ -24,5 +24,5 @@ Button {
         Text { textFormat: Text.PlainText; id: label; text: control.text; color: !control.enabled ? "#777780" : control.primary ? "#16121e" : "#f5f5f7"; font.pixelSize: 12; anchors.verticalCenter: parent.verticalCenter }
       }
     }
-    background: Rectangle { radius: height / 2; color: control.primary ? (control.down ? "#a28ae7" : control.hovered ? "#cbb9ff" : "#b8a1ff") : control.checked ? "#3b324f" : control.down ? "#45454d" : control.hovered ? "#333339" : "#212125"; border.width: control.activeFocus || control.checked ? (control.activeFocus ? 2 : 1) : 0; border.color: "#b8a1ff"; Behavior on color { ColorAnimation { duration: 120 } } }
+    background: Rectangle { radius: height / 2; color: control.primary ? (control.down ? "#a28ae7" : control.hovered ? "#cbb9ff" : "#b8a1ff") : control.checked ? "#3b324f" : control.down ? "#45454d" : control.hovered ? "#333339" : "#212125"; border.width: control.activeFocus || control.checked ? (control.activeFocus ? 2 : 1) : 0; border.color: "#b8a1ff"; Behavior on color { ColorAnimation { duration: island.animations ? 120 : 0 } } }
 }

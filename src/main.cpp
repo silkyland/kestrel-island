@@ -144,7 +144,9 @@ int main(int argc, char **argv) {
   else if (page == "music" && (parser.isSet("page") || preview))
     window->setProperty("page", 0);
   else if (page != "music") {
-    fprintf(stderr, "Unknown page; use music, focus, system or settings.\n");
+    fprintf(stderr,
+            "Unknown page; use music, focus, system, settings, awake, tasks, "
+            "notifications or tools.\n");
     return 1;
   }
   if (preview && page == "system")

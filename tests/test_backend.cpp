@@ -254,6 +254,55 @@ private slots:
     QVERIFY(!root->property("expanded").toBool());
     backend.setPreferredPage(0);
   }
+  void animationsOffMeansNoTransitions() {
+    const auto oldOrganization = QCoreApplication::organizationName();
+    const auto oldApplication = QCoreApplication::applicationName();
+    QTemporaryDir config;
+    const auto restore = qScopeGuard([&] {
+      QCoreApplication::setOrganizationName(oldOrganization);
+      QCoreApplication::setApplicationName(oldApplication);
+    });
+    QCoreApplication::setOrganizationName("KestrelRegressionTests");
+    QCoreApplication::setApplicationName("NoMotion");
+    QSettings::setPath(QSettings::NativeFormat, QSettings::UserScope,
+                       config.path());
+    QSettings().setValue("animations", false);
+    Backend backend(nullptr, false);
+    QVERIFY(!backend.animations());
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("island", &backend);
+    engine.rootContext()->setContextProperty("previewMode", true);
+    engine.rootContext()->setContextProperty("startExpanded", true);
+    engine.load(QUrl("qrc:/qml/Main.qml"));
+    QVERIFY(!engine.rootObjects().isEmpty());
+    auto *root = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
+    root->setProperty("page", 0);
+    root->show();
+    QVERIFY(QTest::qWaitForWindowExposed(root));
+    QTest::qWait(60);
+    // Repeater delegates are visual children only, so walk the navigation
+    // row's child items rather than the QObject tree.
+    QQuickItem *focusTab = nullptr;
+    auto *nav = root->findChild<QQuickItem *>("islandNavigation");
+    QVERIFY(nav);
+    for (auto *item : nav->childItems())
+      if (item->property("label").toString() == "Focus")
+        focusTab = item;
+    QVERIFY(focusTab);
+    QVERIFY(!focusTab->property("selected").toBool());
+    root->setProperty("page", 1);
+    QTest::qWait(60);
+    QVERIFY(focusTab->property("selected").toBool());
+    const auto settled = focusTab->property("implicitWidth").toDouble();
+    QVERIFY2(settled > 60,
+             "The selected tab should already be showing its label.");
+    QTest::qWait(300);
+    QCOMPARE(focusTab->property("implicitWidth").toDouble(), settled);
+    root->setProperty("page", 0);
+    QTest::qWait(60);
+    QCOMPARE(focusTab->property("implicitWidth").toDouble(), 40.0);
+    backend.setPreferredPage(0);
+  }
   void rejectsUnknownDisplayAndLoadsMoveTargets() {
     Backend backend(nullptr, false);
     const auto original = backend.display();

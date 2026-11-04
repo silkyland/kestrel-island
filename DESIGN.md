@@ -38,7 +38,7 @@ Operate mode, native desktop overlay. The user's explicit reference is a Dynamic
 
 ## Colors
 
-A near-black surface with off-white text and secondary gray. Lavender identifies playback and sliders; warm amber identifies the timer. Raised controls use tonal layering.
+A near-black surface with off-white text and secondary gray. Lavender identifies playback and sliders; warm amber identifies the timer. Raised controls use tonal layering. Prominent fills use a deeper lavender (#5a44a8, #6e57c2 hovered) so white icons keep contrast; primary text actions invert to dark text on accent.
 
 ## Typography
 
@@ -46,7 +46,7 @@ Use the desktop's system sans. Body and tab text are 12 px, metadata titles 18 p
 
 ## Layout
 
-The transparent window is 588×594 logical pixels. The visible island stays 288×40 when compact. Expanded width is 456, with Music height 304, Settings height 360, Focus/Tasks/Inbox height 384, Keep awake height 336 and Tools height 288; System expands to 560×568 to show CPU, available RAM, both GPUs and disk capacity. Content has 34 px side insets. Four icon tabs (note, timer, chip, grid) share a volume footer. Tools makes Keep awake, Tasks and Inbox directly discoverable. Hover reopening remembers the chosen page. System uses flat divided rows with explicit units and real CPU history, never placeholder readings. Extra devices scroll.
+The transparent window is 588×594 logical pixels. The visible island stays 288×40 when compact. Expanded width is 456, with Music height 304, Settings height 360, Focus/Tasks/Inbox height 384, Keep awake height 336 and Tools height 288; System expands to 560×568 to show CPU, available RAM, both GPUs and disk capacity. Content has 34 px side insets. Four icon tabs (note, timer, chip, grid) widen into labelled pills when selected and share a volume footer. Tools makes Keep awake, Tasks and Inbox directly discoverable. Hover reopening remembers the chosen page. System uses flat divided rows with explicit units and real CPU history, never placeholder readings. Extra devices scroll.
 
 ## Elevation & Depth
 
@@ -58,7 +58,7 @@ No decorative shadow or blur. Black remains the defining material; control state
 
 ## Components
 
-The compact notch shows the selected activity or highest-priority expiring notice and playback-status bars. Selected media uses a 24 px center-cropped local artwork thumbnail, decoded at 48 px; missing, unreadable or non-media activity uses the 20 px island icon. Notices do not borrow unrelated album art. Activity cycling preserves the single context view. Bars indicate playback; they are not a spectrum analyzer. The user prefers a click-driven model: hovering the compact notch plays a small peek animation (the island nods to 54 px and recentres its content, after ~120 ms) but never opens the window. Clicking expands and implicitly pins, so pointer leave alone never closes it — only the collapse button, Escape, tray toggle or an explicit unpin followed by pointer leave does. Pin is in-memory and clears on explicit collapse. The hover animation is optional and honours reduced motion. A compact settings icon opens an in-island settings page. Dragging the compact title starts native per-display drop targets. Expansion uses 280 ms OutCubic and opacity uses 100–140 ms. The reduced-motion preference disables animations. Activity notices never force expansion. Music adds a capability-aware seek timeline; muted microphone artwork remains visually distinct.
+The compact notch shows the selected activity or highest-priority expiring notice and playback-status bars. Selected media uses a 24 px center-cropped local artwork thumbnail, decoded at 48 px; missing, unreadable or non-media activity uses the 20 px island icon. Notices do not borrow unrelated album art. Activity cycling preserves the single context view. Bars indicate playback; they are not a spectrum analyzer. The user prefers a click-driven model: hovering the compact notch plays a small peek animation (the island nods to 54 px and recentres its content, after ~120 ms) but never opens the window. Clicking expands and implicitly pins, so pointer leave alone never closes it — only the collapse button, Escape, tray toggle or an explicit unpin followed by pointer leave does. Pin is in-memory and clears on explicit collapse. The hover animation is optional and honours the app's motion setting. A compact settings icon opens an in-island settings page. Dragging the compact title starts native per-display drop targets. Expansion uses 280 ms OutCubic and opacity uses 100–140 ms. The "Animate transitions" setting disables all motion; KDE's AnimationDurationFactor scales durations (Qt 6 exposes no reduced-motion hint). Countdown digits roll per digit. Activity notices never force expansion. Music adds a capability-aware seek timeline; muted microphone artwork remains visually distinct.
 
 Music controls respect MPRIS capabilities. Empty state says how to start playback. Focus offers a custom countdown and Pomodoro work/short-break/long-break phases. Completion stays visible until dismissal; the next phase starts explicitly. System shows real CPU and memory. The visible volume footer is disabled when audio is unavailable. Icon controls have names, tooltips, focus rings, and disabled states.
 
