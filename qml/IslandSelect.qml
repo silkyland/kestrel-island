@@ -24,6 +24,10 @@ ComboBox {
         font.pixelSize: 12
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
+        // KDE's ComboBox template wraps the face in a MobileCursor that
+        // calls text-field methods; stub them on this read-only label.
+        readonly property int selectionStart: 0
+        function positionToRectangle(pos) { return Qt.rect(0, 0, 0, 0) }
     }
     background: Rectangle {
         radius: 10
