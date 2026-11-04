@@ -22,7 +22,7 @@ typography:
     fontSize: 44px
     fontWeight: 500
 rounded:
-  artwork: 14px
+  artwork: 0.19x size
   lower-corner: 26px
 spacing:
   content: 34px
@@ -38,7 +38,7 @@ Operate mode, native desktop overlay. The user's explicit reference is a Dynamic
 
 ## Colors
 
-A near-black surface with off-white text and secondary gray. Lavender identifies playback and sliders; warm amber identifies the timer. Raised controls use tonal layering. Prominent fills use a deeper lavender (#5a44a8, #6e57c2 hovered) so white icons keep contrast; primary text actions invert to dark text on accent.
+A near-black surface with off-white text and secondary gray. Lavender identifies playback and sliders; warm amber identifies the timer. Raised controls use tonal layering. The cover tint drives track-scoped parts (compact bars, timeline fill, selected-tab ring, play fill) and is darkened so white icons keep >=4.5:1 contrast; neutral covers fall back to lavender. Primary text actions invert to dark text on accent.
 
 ## Typography
 
@@ -54,11 +54,11 @@ No decorative shadow or blur. Black remains the defining material; control state
 
 ## Shapes
 
-14 px concave shoulders attach the notch to the top edge. Lower corners use a radius of 26 px, clamped to half the height when compact. Pointer region and visible geometry must remain identical. Artwork uses 14 px corners; icon buttons are circular.
+14 px concave shoulders attach the notch to the top edge. Lower corners use a radius of 26 px, clamped to half the height when compact. Pointer region and visible geometry must remain identical. Artwork uses a 0.19×size radius with a 0.5 px inner hairline; utility buttons are 10 px rounded-rects and transport buttons stay circular.
 
 ## Components
 
-The compact notch shows the selected activity or highest-priority expiring notice and playback-status bars. Selected media uses a 24 px center-cropped local artwork thumbnail, decoded at 48 px; missing, unreadable or non-media activity uses the 20 px island icon. Notices do not borrow unrelated album art. Activity cycling preserves the single context view. Bars indicate playback; they are not a spectrum analyzer. The user prefers a click-driven model: hovering the compact notch plays a small peek animation (the island nods to 54 px and recentres its content, after ~120 ms) but never opens the window. Clicking expands and implicitly pins, so pointer leave alone never closes it — only the collapse button, Escape, tray toggle or an explicit unpin followed by pointer leave does. Pin is in-memory and clears on explicit collapse. The hover animation is optional and honours the app's motion setting. A compact settings icon opens an in-island settings page. Dragging the compact title starts native per-display drop targets. Expansion uses 280 ms OutCubic and opacity uses 100–140 ms. The "Animate transitions" setting disables all motion; KDE's AnimationDurationFactor scales durations (Qt 6 exposes no reduced-motion hint). Countdown digits roll per digit. Activity notices never force expansion. Music adds a capability-aware seek timeline; muted microphone artwork remains visually distinct.
+The compact notch shows the selected activity or highest-priority expiring notice and playback-status bars. Selected media uses a 24 px center-cropped local artwork thumbnail, decoded at 48 px; missing, unreadable or non-media activity uses the 20 px island icon. Notices do not borrow unrelated album art. Activity cycling preserves the single context view. Bars indicate playback; they are not a spectrum analyzer. The user prefers a click-driven model: hovering the compact notch plays a small peek animation (the island nods to 54 px and recentres its content, after ~120 ms) but never opens the window. Clicking expands and implicitly pins, so pointer leave alone never closes it — only the collapse button, Escape, tray toggle or an explicit unpin followed by pointer leave does. Pin is in-memory and clears on explicit collapse. The hover animation is optional and honours the app's motion setting. A compact settings icon opens an in-island settings page. Dragging the compact title starts native per-display drop targets. Expansion uses 280 ms OutCubic and opacity uses 100–140 ms. The "Animate transitions" setting disables all motion; KDE's AnimationDurationFactor scales durations (Qt 6 exposes no reduced-motion hint): it is read once at startup, 0 disables motion, and other values are clamped to [0.25, 1]. Countdown digits roll per digit. Activity notices never force expansion. Music adds a capability-aware seek timeline; muted microphone artwork remains visually distinct.
 
 Music controls respect MPRIS capabilities. Empty state says how to start playback. Focus offers a custom countdown and Pomodoro work/short-break/long-break phases. Completion stays visible until dismissal; the next phase starts explicitly. System shows real CPU and memory. The visible volume footer is disabled when audio is unavailable. Icon controls have names, tooltips, focus rings, and disabled states.
 

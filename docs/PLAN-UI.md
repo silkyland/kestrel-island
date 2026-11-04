@@ -164,24 +164,25 @@ Kestrel Island is a native KDE Dynamic Island (C++20 / Qt Quick / LayerShellQt, 
 - **Objective:** make the current uncommitted polish safe and the docs honest.
 - **Depends on:** nothing. **Entry:** `ctest` currently passes (19/19 backend).
 - **Tasks:**
-  - [ ] `M0-T1` Gate existing Behaviors: edit `qml/IslandButton.qml`, `qml/IslandAction.qml`, `qml/ToolsView.qml`, `qml/RollingText.qml` so every `duration` is `island.animations ? n : 0` (interim; replaced by `Theme.dur` in M1).
-  - [ ] `M0-T2` Fix the error text to list all 8 pages: `src/main.cpp:146`.
-  - [ ] `M0-T3` Create `scripts/ui-shots.sh` (bash, offscreen, loops pages music focus system settings awake tasks notifications tools). Make it executable.
-  - [ ] `M0-T4` Update `DESIGN.md`: reduced-motion wording (app flag + KDE factor), Settings 360, RollingText, tabs-with-label, prominent button colors.
-  - [ ] `M0-T5` Add test `animationsOffMeansNoTransitions` in `tests/test_backend.cpp`: set `animations=false` via `Backend`, open expanded, flip pages, assert `IslandButton` `Behavior` is disabled by checking the selected tab width settles in one frame (`QTRY_COMPARE` with 0 ms wait).
-  - [ ] `M0-T6` Ask the user to commit the working tree before M1 (do not commit for them).
+  - [x] `M0-T1` Gate existing Behaviors: edit `qml/IslandButton.qml`, `qml/IslandAction.qml`, `qml/ToolsView.qml`, `qml/RollingText.qml` so every `duration` is `island.animations ? n : 0` (interim; replaced by `Theme.dur` in M1).
+  - [x] `M0-T2` Fix the error text to list all 8 pages: `src/main.cpp:146`.
+  - [x] `M0-T3` Create `scripts/ui-shots.sh` (bash, offscreen, loops pages music focus system settings awake tasks notifications tools). Make it executable.
+  - [x] `M0-T4` Update `DESIGN.md`: reduced-motion wording (app flag + KDE factor), Settings 360, RollingText, tabs-with-label, prominent button colors.
+  - [x] `M0-T5` Add test `animationsOffMeansNoTransitions` in `tests/test_backend.cpp`: set `animations=false` via `Backend`, open expanded, flip pages, assert `IslandButton` `Behavior` is disabled by checking the selected tab width settles in one frame (`QTRY_COMPARE` with 0 ms wait).
+  - [x] `M0-T6` Ask the user to commit the working tree before M1 (do not commit for them).
 - **Exit criteria:** `dbus-run-session -- ctest --test-dir build --output-on-failure` all pass; `scripts/ui-shots.sh` writes 8 PNGs; running `./build/kestrel-island --screenshot /tmp/x --page nope` prints the 8-page list.
 
 ### M1: Walking skeleton: tokens + motion + one page end to end  (effort: M)
 - **Objective:** prove the Theme/tint/motion pipeline on the Music page and compact notch before touching the rest.
 - **Depends on:** M0. **Entry:** M0 exit passed.
 - **Tasks:**
-  - [ ] `M1-T1` **Spike U1:** create `qml/Theme.qml` (`pragma Singleton`) and `qml/qmldir` (`singleton Theme 1.0 Theme.qml`); add `qml/qmldir` to `KESTREL_QML`/resources in `CMakeLists.txt:16-17,29`. Exit: `Main.qml` reads `Theme.surface`; `ctest` passes. If it fails, implement fallback B: `Theme` QObject in `src/theme.{h,cpp}` registered as context property `theme` in `src/main.cpp` and tests.
-  - [ ] `M1-T2` **Spike U2:** read `AnimationDurationFactor` via `QSettings(<GenericConfigLocation>/kdeglobals, IniFormat)` in `src/backend.{h,cpp}`; expose `animationScale`; log value; verify 0.25 on this host. Decide: scale = factor clamped to [0.25, 1]; factor 0 means off. Document the observed semantics in DESIGN.md.
-  - [ ] `M1-T3` Fill `Theme.qml` with decision-3 tokens, `dur(ms)`, `tint`, `onTint`, contrast helper; replace literals in `qml/Main.qml` header/nav/compact, `IslandButton.qml`, `IslandAction.qml`, `MediaView.qml`.
-  - [ ] `M1-T4` Apply decision 4 to `IslandButton.qml` (rounded-rect tabs, hover scale, pressed/disabled) and artwork treatment in `MediaView.qml` and compact artwork (`Main.qml:103-112`).
-  - [ ] `M1-T5` Apply tint to compact bars (`Main.qml:134`), timeline fill, selected tab ring, play button.
-  - [ ] `M1-T6` Update the heights list only if geometry changes; keep footer test valid.
+  - [x] `M1-T1` **Spike U1:** create `qml/Theme.qml` (`pragma Singleton`) and `qml/qmldir` (`singleton Theme 1.0 Theme.qml`); add `qml/qmldir` to `KESTREL_QML`/resources in `CMakeLists.txt:16-17,29`. Exit: `Main.qml` reads `Theme.surface`; `ctest` passes. If it fails, implement fallback B: `Theme` QObject in `src/theme.{h,cpp}` registered as context property `theme` in `src/main.cpp` and tests.
+  - [x] `M1-T2` **Spike U2:** read `AnimationDurationFactor` via `QSettings(<GenericConfigLocation>/kdeglobals, IniFormat)` in `src/backend.{h,cpp}`; expose `animationScale`; log value; verify 0.25 on this host. Decide: scale = factor clamped to [0.25, 1]; factor 0 means off. Document the observed semantics in DESIGN.md.
+  - [x] `M1-T3` Fill `Theme.qml` with decision-3 tokens, `dur(ms)`, `tint`, `onTint`, contrast helper; replace literals in `qml/Main.qml` header/nav/compact, `IslandButton.qml`, `IslandAction.qml`, `MediaView.qml`.
+  - [x] `M1-T4` Apply decision 4 to `IslandButton.qml` (rounded-rect tabs, hover scale, pressed/disabled) and artwork treatment in `MediaView.qml` and compact artwork (`Main.qml:103-112`).
+  - [x] `M1-T5` Apply tint to compact bars (`Main.qml:134`), timeline fill, selected tab ring, play button.
+  - [x] `M1-T6` Update the heights list only if geometry changes; keep footer test valid.
+  Progress notes: U1 spike succeeded — `qml/qmldir` singleton resolves via the implicit qrc directory import and can see the `island` root context property; no fallback needed. U2 observed: `AnimationDurationFactor` 0.25 -> `animationScale` 0.25 (logged at startup). Token `onTint`/`onAccent` renamed to `tintInk`/`accentInk` — QML reserves property names starting with `on`+capital. `tintedCoverColorsIsland` test renders `/tmp/kestrel-ui/music-tinted.png`.
 - **Exit criteria:** `ctest` all pass; `scripts/ui-shots.sh` then view `/tmp/kestrel-ui/music.png` and a screenshot with a fake MPRIS track that has a colored cover (use the isolated fake from `tests/test_backend.cpp:46-60`, never real playback) showing tinted bars/timeline; changing `animations` off removes all motion.
 
 ### M2: Controls and page rollout  (effort: L)

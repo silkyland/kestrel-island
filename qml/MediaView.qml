@@ -4,12 +4,10 @@ import QtQuick.Layouts
 
 ColumnLayout {
     id: view
-    readonly property color ink: "#f5f5f7"
-    readonly property color secondary: "#a7a7af"
-    readonly property color accent: "#b8a1ff"
+    readonly property color ink: Theme.ink
+    readonly property color secondary: Theme.secondary
     readonly property bool available: island.media.available === true
     readonly property bool playing: island.media.playing === true
-    readonly property color tint: island.media.tint ? island.media.tint : "#b8a1ff"
     function stamp(value) { value = Math.max(0, Number.isFinite(value) ? value : 0); return Math.floor(value/60).toString()+":"+Math.floor(value%60).toString().padStart(2,"0") }
 
     spacing: 0
@@ -19,9 +17,9 @@ ColumnLayout {
         Rectangle {
             Layout.preferredWidth: 76; Layout.preferredHeight: 76
             Layout.alignment: Qt.AlignTop
-            radius: 16; color: "#202023"; clip: true
+            radius: width * 0.19; color: Theme.raised; clip: true
             scale: view.playing ? 1 : 0.94
-            Behavior on scale { NumberAnimation { duration: island.animations ? 300 : 0; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: Theme.dur(300); easing.type: Easing.OutCubic } }
             Image {
                 id: albumArt
                 anchors.fill: parent
@@ -30,6 +28,7 @@ ColumnLayout {
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
             }
+            Rectangle { anchors.fill: parent; radius: parent.radius; color: "transparent"; border.width: 0.5; border.color: Theme.hairline }
             Image { anchors.centerIn: parent; width: 30; height: 30; source: "qrc:/assets/icons/music.svg"; opacity: 0.45; visible: albumArt.status !== Image.Ready }
         }
         ColumnLayout {
@@ -45,14 +44,14 @@ ColumnLayout {
                 model: 4
                 Rectangle {
                     required property int index
-                    width: 2.5; radius: 1.2; color: view.tint
+                    width: 2.5; radius: 1.2; color: Theme.tint
                     height: view.playing ? [7, 13, 10, 15][index] : 4
                     anchors.verticalCenter: parent.verticalCenter
                     SequentialAnimation on height {
                         running: view.playing && root.visible && island.animations
                         loops: Animation.Infinite
-                        NumberAnimation { to: 4; duration: 360 + index * 75; easing.type: Easing.InOutSine }
-                        NumberAnimation { to: 8 + index * 2.5; duration: 420 + index * 65; easing.type: Easing.InOutSine }
+                        NumberAnimation { to: 4; duration: Theme.dur(360 + index * 75); easing.type: Easing.InOutSine }
+                        NumberAnimation { to: 8 + index * 2.5; duration: Theme.dur(420 + index * 65); easing.type: Easing.InOutSine }
                     }
                 }
             }
@@ -83,8 +82,8 @@ ColumnLayout {
             Binding { target: timeline; property: "value"; value: island.playbackPosition; when: !timeline.pressed && !seekHold.running }
             Timer { id: seekHold; interval: 1500 }
             Connections { target: island; function onMediaChanged() { if (timeline.dragTrack !== island.media.trackId || timeline.dragService !== island.media.service) seekHold.stop() } }
-            background: Rectangle { x: timeline.leftPadding; y: timeline.topPadding + timeline.availableHeight/2-2; width: timeline.availableWidth; height: 4; radius: 2; color: "#303035"; Rectangle { width: timeline.visualPosition*parent.width; height: 4; radius: 2; color: view.tint } }
-            handle: Rectangle { x: timeline.leftPadding + timeline.visualPosition*(timeline.availableWidth-width); y: timeline.topPadding+timeline.availableHeight/2-5; width: 10; height: 10; radius: 5; color: timeline.enabled ? "#f5f5f7" : "#66666c"; border.width: timeline.activeFocus ? 2 : 0; border.color: view.accent }
+            background: Rectangle { x: timeline.leftPadding; y: timeline.topPadding + timeline.availableHeight/2-2; width: timeline.availableWidth; height: 4; radius: 2; color: Theme.track; Rectangle { width: timeline.visualPosition*parent.width; height: 4; radius: 2; color: Theme.tint } }
+            handle: Rectangle { x: timeline.leftPadding + timeline.visualPosition*(timeline.availableWidth-width); y: timeline.topPadding+timeline.availableHeight/2-5; width: 10; height: 10; radius: 5; color: timeline.enabled ? Theme.ink : Theme.faint; border.width: timeline.activeFocus ? 2 : 0; border.color: Theme.tint }
         }
         Text { textFormat: Text.PlainText; text: "-" + view.stamp(island.media.durationUs / 1000000 - timeline.value); color: view.secondary; font.pixelSize: 10; Layout.preferredWidth: 32; horizontalAlignment: Text.AlignRight }
     }

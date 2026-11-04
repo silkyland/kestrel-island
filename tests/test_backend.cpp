@@ -3,6 +3,7 @@
 #include <QDBusObjectPath>
 #include <QDBusVariant>
 #include <QFile>
+#include <QImage>
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
 #include <QQmlContext>
@@ -31,13 +32,18 @@ public:
   int seeks = 0;
   qlonglong currentPosition = 10000000;
   QString track = "/track/one";
+  QString art;
   bool seekable = true;
   QString status() const { return playing ? "Playing" : "Paused"; }
   QVariantMap metadata() const {
-    return {{"xesam:title", "Integration test song"},
-            {"xesam:artist", QStringList{"Test artist"}},
-            {"mpris:length", qlonglong(180000000)},
-            {"mpris:trackid", QVariant::fromValue(QDBusObjectPath(track))}};
+    auto map = QVariantMap{
+        {"xesam:title", "Integration test song"},
+        {"xesam:artist", QStringList{"Test artist"}},
+        {"mpris:length", qlonglong(180000000)},
+        {"mpris:trackid", QVariant::fromValue(QDBusObjectPath(track))}};
+    if (!art.isEmpty())
+      map["mpris:artUrl"] = art;
+    return map;
   }
   bool yes() const { return true; }
   bool canSeek() const { return seekable; }
@@ -320,6 +326,50 @@ private slots:
         {{"displayName", "Test display"}}));
     QVERIFY2(target, qPrintable(component.errorString()));
     QVERIFY(target->findChild<QObject *>("moveDropArea"));
+  }
+  void tintedCoverColorsIsland() {
+    auto bus = QDBusConnection::sessionBus();
+    if (!bus.isConnected())
+      QSKIP("A session bus is required; run with dbus-run-session.");
+    QTemporaryDir directory;
+    const auto coverPath = directory.filePath("cover.png");
+    QImage cover(64, 64, QImage::Format_RGB32);
+    cover.fill(QColor(235, 130, 90));
+    QVERIFY(cover.save(coverPath));
+    const QString service = "org.mpris.MediaPlayer2.KestrelTintTest";
+    QVERIFY(bus.registerService(service));
+    FakePlayer player;
+    player.art = "file://" + coverPath;
+    QVERIFY(bus.registerObject("/org/mpris/MediaPlayer2", &player,
+                               QDBusConnection::ExportAllProperties |
+                                   QDBusConnection::ExportAllSlots));
+    const auto cleanup = qScopeGuard([&] {
+      bus.unregisterObject("/org/mpris/MediaPlayer2");
+      bus.unregisterService(service);
+    });
+    Backend backend;
+    QTRY_COMPARE(backend.media()["service"].toString(), service);
+    const auto tint = backend.media()["tint"].toString();
+    QVERIFY2(tint.startsWith("#") && tint != "#000000",
+             qPrintable("Expected a saturated cover tint, got " + tint));
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("island", &backend);
+    engine.rootContext()->setContextProperty("previewMode", true);
+    engine.rootContext()->setContextProperty("startExpanded", true);
+    engine.load(QUrl("qrc:/qml/Main.qml"));
+    QVERIFY(!engine.rootObjects().isEmpty());
+    auto *root = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
+    root->setProperty("page", 0);
+    root->show();
+    QVERIFY(QTest::qWaitForWindowExposed(root));
+    auto *artwork = root->findChild<QQuickItem *>("compactArtwork");
+    QVERIFY(artwork);
+    QTRY_COMPARE(artwork->property("status").toInt(), 1); // Image.Ready
+    QTest::qWait(400);
+    const auto shot = QDir::temp().filePath("kestrel-ui/music-tinted.png");
+    QDir().mkpath(QFileInfo(shot).absolutePath());
+    QVERIFY2(root->grabWindow().save(shot), qPrintable(shot));
+    qInfo() << "tinted screenshot:" << shot;
   }
   void emptyMedia() {
     auto result = Backend::normalizeMedia({}, {});

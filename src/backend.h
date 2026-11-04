@@ -35,6 +35,8 @@ class Backend : public QObject {
   Q_PROPERTY(QString message READ message NOTIFY messageChanged)
   Q_PROPERTY(bool hoverExpand READ hoverExpand NOTIFY preferencesChanged)
   Q_PROPERTY(bool animations READ animations NOTIFY preferencesChanged)
+  Q_PROPERTY(
+      double animationScale READ animationScale NOTIFY preferencesChanged)
   Q_PROPERTY(QStringList displays READ displays NOTIFY preferencesChanged)
   Q_PROPERTY(QString display READ display NOTIFY preferencesChanged)
   Q_PROPERTY(int topGap READ topGap NOTIFY preferencesChanged)
@@ -93,6 +95,9 @@ public:
   }
   bool animations() const {
     return m_settings.value("animations", true).toBool();
+  }
+  double animationScale() const {
+    return animations() ? m_animationFactor : 0;
   }
   QStringList displays() const;
   QString display() const;
@@ -180,4 +185,5 @@ private:
   QQueue<QStringList> m_audioQueue;
   bool m_moving = false;
   QString m_dropDisplay;
+  double m_animationFactor = 1.0;
 };

@@ -20,9 +20,9 @@ Window {
     onExpandedChanged: { island.setExpanded(expanded); if (expanded) peek = false }
     property bool peek: false
     Component.onCompleted: { page = island.preferredPage; island.setCurrentPage(page); island.setExpanded(expanded) }
-    readonly property color ink: "#f5f5f7"
-    readonly property color secondary: "#a7a7af"
-    readonly property color accent: "#b8a1ff"
+    readonly property color ink: Theme.ink
+    readonly property color secondary: Theme.secondary
+    readonly property color accent: Theme.accent
     readonly property bool playing: island.media.playing === true
     readonly property bool available: island.media.available === true
 
@@ -54,8 +54,8 @@ Window {
         width: root.expanded ? (root.page === 2 ? 560 : 456) : (root.peek ? 316 : 288)
         height: root.expanded ? (root.page === 2 ? 568 : root.page === 3 ? 360 : root.page === 1 || root.page === 5 || root.page === 6 ? 384 : root.page === 4 ? 336 : root.page === 0 ? 304 : 288) : (root.peek ? 54 : 40)
         clip: true
-        Behavior on width { NumberAnimation { duration: island.animations ? 280 : 0; easing.type: Easing.OutCubic } }
-        Behavior on height { NumberAnimation { duration: island.animations ? 280 : 0; easing.type: Easing.OutCubic } }
+        Behavior on width { NumberAnimation { duration: Theme.dur(280); easing.type: Easing.OutCubic } }
+        Behavior on height { NumberAnimation { duration: Theme.dur(280); easing.type: Easing.OutCubic } }
         onWidthChanged: region.restart()
         onHeightChanged: region.restart()
         Timer { id: region; interval: 0; onTriggered: island.updateInputRegion(surface.x, surface.width, surface.height) }
@@ -65,7 +65,7 @@ Window {
             anchors.fill: parent
             preferredRendererType: Shape.CurveRenderer
             ShapePath {
-                fillColor: "#080809"
+                fillColor: Theme.surface
                 strokeWidth: -1
                 startX: 0; startY: 0
                 PathQuad { x: 14; y: 14; controlX: 14; controlY: 0 }
@@ -96,25 +96,33 @@ Window {
             spacing: 6
             opacity: root.expanded ? 0 : 1
             visible: opacity > 0
-            Behavior on opacity { NumberAnimation { duration: island.animations ? 100 : 0 } }
+            Behavior on opacity { NumberAnimation { duration: Theme.dur(100) } }
             Item {
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
-                readonly property string artwork: root.available && island.activity.selected.key === "music" && !island.activity.notice.title ? String(island.media.art || "") : ""
-                Image {
-                    id: compactArtwork
-                    objectName: "compactArtwork"
+                Rectangle {
                     anchors.fill: parent
-                    source: parent.artwork.startsWith("file://") ? parent.artwork : ""
-                    sourceSize.width: 48; sourceSize.height: 48
-                    fillMode: Image.PreserveAspectCrop
-                    asynchronous: true
-                    visible: status === Image.Ready
+                    readonly property string artwork: root.available && island.activity.selected.key === "music" && !island.activity.notice.title ? String(island.media.art || "") : ""
+                    radius: width * 0.19
+                    color: Theme.raised
+                    clip: true
+                    Image {
+                        id: compactArtwork
+                        objectName: "compactArtwork"
+                        anchors.fill: parent
+                        source: parent.artwork.startsWith("file://") ? parent.artwork : ""
+                        sourceSize.width: 48; sourceSize.height: 48
+                        fillMode: Image.PreserveAspectCrop
+                        asynchronous: true
+                        visible: status === Image.Ready
+                    }
+                    Rectangle { anchors.fill: parent; radius: parent.radius; color: "transparent"; border.width: 0.5; border.color: Theme.hairline }
                 }
                 Image {
                     anchors.centerIn: parent
                     width: 20; height: 20
                     source: "qrc:/assets/island.svg"
                     sourceSize.width: 22; sourceSize.height: 22
+                    opacity: 0.45
                     visible: compactArtwork.status !== Image.Ready
                 }
             }
@@ -131,14 +139,14 @@ Window {
                     model: 4
                     Rectangle {
                         required property int index
-                        width: 3; radius: 1.5; color: island.remaining > 0 ? "#ffc078" : root.accent
+                        width: 3; radius: 1.5; color: island.remaining > 0 ? Theme.timer : Theme.tint
                         height: root.playing ? [7, 15, 11, 18][index] : 5
                         anchors.verticalCenter: parent.verticalCenter
                         SequentialAnimation on height {
                             running: root.playing && !root.expanded && root.visible && island.animations
                             loops: Animation.Infinite
-                            NumberAnimation { to: 5; duration: 360 + index * 75; easing.type: Easing.InOutSine }
-                            NumberAnimation { to: 10 + index * 3; duration: 420 + index * 65; easing.type: Easing.InOutSine }
+                            NumberAnimation { to: 5; duration: Theme.dur(360 + index * 75); easing.type: Easing.InOutSine }
+                            NumberAnimation { to: 10 + index * 3; duration: Theme.dur(420 + index * 65); easing.type: Easing.InOutSine }
                         }
                     }
                 }
@@ -178,7 +186,7 @@ Window {
             spacing: 8
             opacity: root.expanded && surface.height > 260 ? 1 : 0
             visible: opacity > 0
-            Behavior on opacity { NumberAnimation { duration: island.animations ? 140 : 0 } }
+            Behavior on opacity { NumberAnimation { duration: Theme.dur(140) } }
 
             RowLayout {
                 objectName: "islandNavigation"
@@ -222,7 +230,7 @@ Window {
             StackLayout {
                 id: pageStack
                 currentIndex: root.page
-                NumberAnimation on opacity { id: pageFade; running: false; from: 0; to: 1; duration: 160; easing.type: Easing.OutCubic }
+                NumberAnimation on opacity { id: pageFade; running: false; from: 0; to: 1; duration: Theme.dur(160); easing.type: Easing.OutCubic }
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.minimumHeight: 0
@@ -259,7 +267,7 @@ Window {
                             currentIndex: island.displays.indexOf(island.display)
                             displayText: currentText || "Default display"
                             onActivated: island.chooseDisplay(currentText)
-                            palette.button: "#202023"; palette.base: "#202023"; palette.text: root.ink; palette.buttonText: root.ink; palette.window: "#202023"; palette.highlight: "#3b334d"; palette.highlightedText: root.ink
+                            palette.button: Theme.raised; palette.base: Theme.raised; palette.text: root.ink; palette.buttonText: root.ink; palette.window: Theme.raised; palette.highlight: Theme.selectedFill; palette.highlightedText: root.ink
                             Accessible.name: "Island display"
                         }
                     }
@@ -270,7 +278,7 @@ Window {
                             from: 0; to: 120; stepSize: 8; value: island.topGap
                             implicitHeight: 32
                             onValueModified: island.setTopGap(value)
-                            palette.button: "#202023"; palette.base: "#202023"; palette.text: root.ink; palette.buttonText: root.ink
+                            palette.button: Theme.raised; palette.base: Theme.raised; palette.text: root.ink; palette.buttonText: root.ink
                             Accessible.name: "Top offset in pixels"
                         }
                         Text { textFormat: Text.PlainText; text: "px"; color: root.secondary; font.pixelSize: 12 }
@@ -295,7 +303,7 @@ Window {
 
             }
 
-            Rectangle { Layout.fillWidth: true; height: 1; color: "#252529" }
+            Rectangle { Layout.fillWidth: true; height: 1; color: Theme.divider }
             RowLayout {
                 objectName: "audioFooter"
                 Layout.fillWidth: true; spacing: 10
@@ -314,12 +322,12 @@ Window {
                     onMoved: { requestedVolume = Math.round(value); volumeDebounce.restart() }
                     Binding { target: volumeSlider; property: "value"; value: island.volume; when: !volumeSlider.pressed }
                     Timer { id: volumeDebounce; interval: 100; onTriggered: island.setVolume(volumeSlider.requestedVolume) }
-                    background: Rectangle { x: volumeSlider.leftPadding; y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2; width: volumeSlider.availableWidth; height: 4; radius: 2; color: "#303035"; Rectangle { width: volumeSlider.visualPosition * parent.width; height: parent.height; radius: 2; color: root.accent } }
+                    background: Rectangle { x: volumeSlider.leftPadding; y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2; width: volumeSlider.availableWidth; height: 4; radius: 2; color: Theme.track; Rectangle { width: volumeSlider.visualPosition * parent.width; height: parent.height; radius: 2; color: root.accent } }
                     handle: Rectangle { x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width); y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2; width: 12; height: 12; radius: 6; color: volumeSlider.enabled ? root.ink : root.secondary; border.width: volumeSlider.activeFocus ? 2 : 0; border.color: root.accent }
                 }
                 Text { textFormat: Text.PlainText; text: island.audioAvailable ? island.volume + "%" : "No audio"; color: root.secondary; font.pixelSize: 11; Layout.preferredWidth: 48; horizontalAlignment: Text.AlignRight }
             }
-            Text { textFormat: Text.PlainText; Layout.fillWidth: true; visible: island.message.length > 0; text: island.message; color: "#ffc078"; font.pixelSize: 11; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
+            Text { textFormat: Text.PlainText; Layout.fillWidth: true; visible: island.message.length > 0; text: island.message; color: Theme.timer; font.pixelSize: 11; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
         }
     }
 }

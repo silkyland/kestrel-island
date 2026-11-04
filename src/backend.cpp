@@ -54,6 +54,16 @@ Backend::Backend(QObject *parent, bool live)
           this, live,
           m_settings.value("notifications/validated", false).toBool()),
       m_live(live) {
+  // KDE's global animation speed, read once at startup. A factor of 0
+  // disables motion; otherwise durations scale inside [0.25, 1].
+  const QSettings kde(QStandardPaths::writableLocation(
+                          QStandardPaths::GenericConfigLocation) +
+                          "/kdeglobals",
+                      QSettings::IniFormat);
+  const double factor = kde.value("KDE/AnimationDurationFactor", 1).toDouble();
+  m_animationFactor = factor <= 0 ? 0 : qBound(0.25, factor, 1.0);
+  qInfo() << "KDE AnimationDurationFactor" << factor << "-> animation scale"
+          << m_animationFactor;
   m_media = normalizeMedia({}, {});
   connect(&m_system, &SystemMonitor::changed, this, [this] {
     auto data = m_system.snapshot();

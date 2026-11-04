@@ -17,7 +17,10 @@ Button {
     icon.height: 20
     display: AbstractButton.IconOnly
     Accessible.name: text
-    Behavior on implicitWidth { NumberAnimation { duration: island.animations ? 180 : 0; easing.type: Easing.OutCubic } }
+    opacity: !enabled ? 0.4 : down ? 0.8 : 1
+    scale: enabled && hovered ? 1.04 : 1
+    Behavior on scale { NumberAnimation { duration: Theme.dur(120); easing.type: Easing.OutCubic } }
+    Behavior on implicitWidth { NumberAnimation { duration: Theme.dur(180); easing.type: Easing.OutCubic } }
     // Render our bundled SVG directly: KDE's platform Button delegate may
     // ignore icon.source when icon.name is empty.
     contentItem: Row {
@@ -31,24 +34,28 @@ Button {
             sourceSize.width: 20
             sourceSize.height: 20
             fillMode: Image.PreserveAspectFit
-            opacity: !control.enabled ? 0.3 : control.dim && !control.selected && !control.hovered ? 0.6 : 1
+            opacity: control.dim && !control.selected && !control.hovered ? 0.6 : 1
         }
         Text {
             visible: control.showLabel
             anchors.verticalCenter: parent.verticalCenter
             textFormat: Text.PlainText
             text: control.label
-            color: "#f5f5f7"
+            color: Theme.ink
             font.pixelSize: 12
             font.weight: Font.Medium
         }
     }
     background: Rectangle {
-        radius: height / 2
-        color: control.down ? "#4a4a53" : control.prominent ? (control.hovered ? "#6e57c2" : "#5a44a8") : control.checked || control.selected ? "#3b324f" : control.hovered || control.activeFocus ? "#2e2e34" : "transparent"
+        radius: control.prominent ? height / 2 : 10
+        color: control.prominent ? (control.down ? Qt.darker(Theme.tintFill, 1.12) : control.hovered ? Theme.tintFillHover : Theme.tintFill)
+               : control.down ? Theme.raisedPressed
+               : control.checked || control.selected ? Theme.selectedFill
+               : control.hovered || control.activeFocus ? Theme.raisedHover
+               : "transparent"
         border.width: control.activeFocus ? 2 : control.checked || control.selected ? 1 : 0
-        border.color: "#b8a1ff"
-        Behavior on color { ColorAnimation { duration: island.animations ? 120 : 0 } }
+        border.color: Theme.tint
+        Behavior on color { ColorAnimation { duration: Theme.dur(120) } }
     }
     ToolTip.visible: hovered && text.length > 0
     ToolTip.text: text
