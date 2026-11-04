@@ -46,7 +46,7 @@ Use the desktop's system sans. Body and tab text are 12 px, metadata titles 18 p
 
 ## Layout
 
-The transparent window is 588×594 logical pixels. The visible island stays 288×40 when compact. Expanded width is 456, with Music/Settings height 304, Focus/Tasks/Inbox height 384, Keep awake height 336 and Tools height 288; System expands to 560×568 to show CPU, available RAM, both GPUs and disk capacity. Content has 34 px side insets. Four icon tabs (note, timer, chip, grid) share a volume footer. Tools makes Keep awake, Tasks and Inbox directly discoverable. Hover reopening remembers the chosen page. System uses flat divided rows with explicit units and real CPU history, never placeholder readings. Extra devices scroll.
+The transparent window is 588×594 logical pixels. The visible island stays 288×40 when compact. Expanded width is 456, with Music height 304, Settings height 360, Focus/Tasks/Inbox height 384, Keep awake height 336 and Tools height 288; System expands to 560×568 to show CPU, available RAM, both GPUs and disk capacity. Content has 34 px side insets. Four icon tabs (note, timer, chip, grid) share a volume footer. Tools makes Keep awake, Tasks and Inbox directly discoverable. Hover reopening remembers the chosen page. System uses flat divided rows with explicit units and real CPU history, never placeholder readings. Extra devices scroll.
 
 ## Elevation & Depth
 

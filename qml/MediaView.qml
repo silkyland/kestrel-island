@@ -17,9 +17,9 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true; spacing: 14
         Rectangle {
-            Layout.preferredWidth: 68; Layout.preferredHeight: 68
+            Layout.preferredWidth: 76; Layout.preferredHeight: 76
             Layout.alignment: Qt.AlignTop
-            radius: 13; color: "#202023"; clip: true
+            radius: 16; color: "#202023"; clip: true
             scale: view.playing ? 1 : 0.94
             Behavior on scale { NumberAnimation { duration: island.animations ? 300 : 0; easing.type: Easing.OutCubic } }
             Image {
@@ -33,9 +33,9 @@ ColumnLayout {
             Image { anchors.centerIn: parent; width: 30; height: 30; source: "qrc:/assets/icons/music.svg"; opacity: 0.45; visible: albumArt.status !== Image.Ready }
         }
         ColumnLayout {
-            Layout.fillWidth: true; spacing: 2
-            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: island.media.title || (view.available ? "Unknown track" : "Nothing playing"); color: view.ink; font.pixelSize: 14; font.weight: Font.DemiBold; elide: Text.ElideRight; maximumLineCount: 1; ToolTip.visible: titleHover.hovered; ToolTip.text: text; HoverHandler { id: titleHover } }
-            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: view.available ? (island.media.artist || island.media.album || "Now playing") : "Play something in Spotify, a browser or VLC."; color: view.secondary; font.pixelSize: 12; elide: Text.ElideRight; maximumLineCount: 1 }
+            Layout.fillWidth: true; Layout.alignment: Qt.AlignVCenter; spacing: 3
+            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: island.media.title || (view.available ? "Unknown track" : "Nothing playing"); color: view.ink; font.pixelSize: 16; font.weight: Font.DemiBold; elide: Text.ElideRight; maximumLineCount: 1; ToolTip.visible: titleHover.hovered; ToolTip.text: text; HoverHandler { id: titleHover } }
+            Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: view.available ? (island.media.artist || island.media.album || "Now playing") : "Start a song in any player and it will appear here."; color: view.secondary; font.pixelSize: 12; elide: Text.ElideRight; maximumLineCount: 1 }
         }
         Row {
             visible: view.available
@@ -91,20 +91,20 @@ ColumnLayout {
     Text { textFormat: Text.PlainText; Layout.fillWidth: true; Layout.topMargin: 14; visible: view.available && !(island.media.durationUs > 0); text: "This player does not provide a timeline."; color: view.secondary; font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter }
     // Five equal places: the transport keeps the middle three.
     RowLayout {
-        Layout.fillWidth: true; Layout.topMargin: 10
-        Item { Layout.preferredWidth: view.width / 5; Layout.preferredHeight: 44
+        Layout.fillWidth: true; Layout.topMargin: 12
+        Item { Layout.preferredWidth: view.width / 5; Layout.preferredHeight: 52
             IslandButton { anchors.centerIn: parent; text: "Switch activity"; symbol: "activities"; implicitWidth: 36; implicitHeight: 36; dim: true; visible: island.activity.activities.length > 1; onClicked: island.activity.cycle() }
         }
         RowLayout {
-            Layout.preferredWidth: view.width / 5 * 3; Layout.preferredHeight: 44
-            spacing: 0
+            Layout.preferredWidth: view.width / 5 * 3; Layout.preferredHeight: 52
+            spacing: 8
             Item { Layout.fillWidth: true }
             IslandButton { text: "Previous track"; symbol: "media-skip-backward"; implicitWidth: 36; implicitHeight: 36; dim: !view.available; enabled: island.media.canPrevious === true; onClicked: island.mediaAction("Previous") }
-            IslandButton { text: view.playing ? "Pause" : "Play"; symbol: view.playing ? "media-playback-pause" : "media-playback-start"; prominent: true; implicitWidth: 44; implicitHeight: 44; enabled: view.playing ? island.media.canPause === true : island.media.canPlay === true; onClicked: island.mediaAction("PlayPause") }
+            IslandButton { text: view.playing ? "Pause" : "Play"; symbol: view.playing ? "media-playback-pause" : "media-playback-start"; prominent: true; implicitWidth: 52; implicitHeight: 52; enabled: view.playing ? island.media.canPause === true : island.media.canPlay === true; onClicked: island.mediaAction("PlayPause") }
             IslandButton { text: "Next track"; symbol: "media-skip-forward"; implicitWidth: 36; implicitHeight: 36; dim: !view.available; enabled: island.media.canNext === true; onClicked: island.mediaAction("Next") }
             Item { Layout.fillWidth: true }
         }
-        Item { Layout.preferredWidth: view.width / 5; Layout.preferredHeight: 44 }
+        Item { Layout.preferredWidth: view.width / 5; Layout.preferredHeight: 52 }
     }
     Item { Layout.fillHeight: true }
 }

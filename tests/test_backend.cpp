@@ -213,7 +213,7 @@ private slots:
     auto *navigation = root->findChild<QQuickItem *>("islandNavigation");
     auto *footer = root->findChild<QQuickItem *>("audioFooter");
     QVERIFY(surface && navigation && footer);
-    const QList<int> heights{304, 384, 568, 304, 336, 384, 384, 288};
+    const QList<int> heights{304, 384, 568, 360, 336, 384, 384, 288};
     for (int page = 0; page < 8; ++page) {
       root->setProperty("page", page);
       QTRY_COMPARE(surface->height(), double(heights[page]));

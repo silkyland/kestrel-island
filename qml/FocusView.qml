@@ -21,7 +21,8 @@ ColumnLayout {
         IslandAction { objectName: "pomodoroMode"; text: "Pomodoro"; symbol: "cycles"; checked: view.pomodoro; onClicked: view.pomodoro=true }
         Item { Layout.fillWidth: true }
     }
-    Text { textFormat: Text.PlainText; Layout.alignment: Qt.AlignHCenter; text: view.completed ? "Session complete" : view.stamp(view.idle ? minutes.value * 60 : view.session.remaining); color: "#ffc078"; font.pixelSize: view.completed ? 25 : 44; font.weight: Font.Medium }
+    Text { visible: view.completed; textFormat: Text.PlainText; Layout.alignment: Qt.AlignHCenter; text: "Session complete"; color: "#ffc078"; font.pixelSize: 25; font.weight: Font.Light }
+    RollingText { visible: !view.completed; Layout.alignment: Qt.AlignHCenter; text: view.stamp(view.idle ? minutes.value * 60 : view.session.remaining); color: "#ffc078"; pixelSize: 44; animate: island.animations && !view.idle }
     Text { textFormat: Text.PlainText; Layout.alignment: Qt.AlignHCenter; text: view.idle ? (view.pomodoro ? "Work, then rest. Each phase starts with you." : "One task. A little uninterrupted time.") : (view.session.pomodoro ? view.session.phase + " · round " + view.session.round : "Countdown") ; color: "#a7a7af"; font.pixelSize: 12 }
     RowLayout {
         visible: view.idle; Layout.fillWidth: true

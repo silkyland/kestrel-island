@@ -16,7 +16,7 @@ Window {
     onPinnedChanged: if (!pinned && expanded && !islandHover.hovered) leaveDelay.restart()
     property bool hoverBlocked: false
     property int page: 0
-    onPageChanged: island.setCurrentPage(page)
+    onPageChanged: { island.setCurrentPage(page); if (expanded && island.animations) pageFade.restart() }
     onExpandedChanged: { island.setExpanded(expanded); if (expanded) peek = false }
     property bool peek: false
     Component.onCompleted: { page = island.preferredPage; island.setCurrentPage(page); island.setExpanded(expanded) }
@@ -52,7 +52,7 @@ Window {
         anchors.horizontalCenter: parent.horizontalCenter
         objectName: "islandSurface"
         width: root.expanded ? (root.page === 2 ? 560 : 456) : (root.peek ? 316 : 288)
-        height: root.expanded ? (root.page === 2 ? 568 : root.page === 3 ? 304 : root.page === 1 || root.page === 5 || root.page === 6 ? 384 : root.page === 4 ? 336 : root.page === 0 ? 304 : 288) : (root.peek ? 54 : 40)
+        height: root.expanded ? (root.page === 2 ? 568 : root.page === 3 ? 360 : root.page === 1 || root.page === 5 || root.page === 6 ? 384 : root.page === 4 ? 336 : root.page === 0 ? 304 : 288) : (root.peek ? 54 : 40)
         clip: true
         Behavior on width { NumberAnimation { duration: island.animations ? 280 : 0; easing.type: Easing.OutCubic } }
         Behavior on height { NumberAnimation { duration: island.animations ? 280 : 0; easing.type: Easing.OutCubic } }
@@ -195,30 +195,34 @@ Window {
                         required property int index
                         required property var modelData
                         text: modelData.name + " tab"
+                        label: modelData.name
                         symbol: modelData.symbol
-                        implicitWidth: 32; implicitHeight: 30
+                        implicitHeight: 32
                         dim: true
                         selected: index === 3 ? root.page >= 4 : root.page === index
                         onClicked: root.navigate(index === 3 ? 7 : index)
                     }
                 }
                 Item { Layout.fillWidth: true }
-                IslandButton { text: "Switch activity"; symbol: "activities"; implicitWidth: 28; implicitHeight: 30; onClicked: { island.activity.cycle(); root.page = island.activity.selected.page || 0; } }
+                IslandButton { text: "Switch activity"; symbol: "activities"; dim: true; implicitWidth: 30; implicitHeight: 30; visible: island.activity.activities.length > 1; onClicked: { island.activity.cycle(); root.page = island.activity.selected.page || 0; } }
                 IslandButton {
                     objectName: "pinButton"
                     text: root.pinned ? "Unpin island" : "Pin island"
                     symbol: "pin"
+                    dim: true
                     implicitWidth: 30; implicitHeight: 30
                     checkable: true
                     checked: root.pinned
                     onClicked: root.pinned = checked
                 }
-                IslandButton { text: "Settings"; symbol: "configure"; implicitWidth: 30; implicitHeight: 30; onClicked: root.showSettings() }
-                IslandButton { text: "Collapse"; symbol: "arrow-up"; implicitWidth: 30; implicitHeight: 30; onClicked: root.collapse() }
+                IslandButton { text: "Settings"; symbol: "configure"; dim: true; implicitWidth: 30; implicitHeight: 30; onClicked: root.showSettings() }
+                IslandButton { text: "Collapse"; symbol: "arrow-up"; dim: true; implicitWidth: 30; implicitHeight: 30; onClicked: root.collapse() }
             }
 
             StackLayout {
+                id: pageStack
                 currentIndex: root.page
+                NumberAnimation on opacity { id: pageFade; running: false; from: 0; to: 1; duration: 160; easing.type: Easing.OutCubic }
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.minimumHeight: 0
@@ -236,12 +240,13 @@ Window {
                     width: settingsScroll.availableWidth
                     objectName: "settingsPage"
                     spacing: 4
-                    Text { textFormat: Text.PlainText; text: "Island settings"; color: root.ink; font.pixelSize: 18; font.weight: Font.DemiBold }
+                    Text { textFormat: Text.PlainText; text: "Island settings"; color: root.ink; font.pixelSize: 20; font.weight: Font.DemiBold }
                     RowLayout {
                         IslandAction { text: "Keep awake"; symbol: "coffee"; onClicked: { root.page=4; } }
                         IslandAction { text: "Tasks"; symbol: "terminal"; onClicked: { root.page=5; } }
                         IslandAction { text: "Inbox"; symbol: "bell"; onClicked: { root.page=6; } }
                     }
+                    Text { textFormat: Text.PlainText; text: "POSITION"; color: root.secondary; font.pixelSize: 10; font.weight: Font.DemiBold; font.letterSpacing: 1; Layout.topMargin: 6 }
                     RowLayout {
                         Layout.fillWidth: true
                         Text { textFormat: Text.PlainText; text: "Display"; color: root.secondary; font.pixelSize: 12; Layout.preferredWidth: 70 }
@@ -270,6 +275,7 @@ Window {
                         }
                         Text { textFormat: Text.PlainText; text: "px"; color: root.secondary; font.pixelSize: 12 }
                     }
+                    Text { textFormat: Text.PlainText; text: "BEHAVIOR"; color: root.secondary; font.pixelSize: 10; font.weight: Font.DemiBold; font.letterSpacing: 1; Layout.topMargin: 8 }
                     CheckBox {
                         text: "Peek on hover"
                         checked: island.hoverExpand
