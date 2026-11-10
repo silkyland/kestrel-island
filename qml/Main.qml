@@ -39,6 +39,10 @@ Window {
     // A transient failure text adds a row below the page; the surface grows
     // by that row so the page keeps its exact bands instead of being clipped.
     readonly property int messageHeight: island.message.length > 0 ? Math.ceil(messageLabel.implicitHeight) + 8 : 0
+    // The island's signature morph keeps a readable duration even when
+    // KDE's animation factor is set fast; the crossfade follows it.
+    readonly property int morphDuration: island.animations ? Math.max(260, Math.round(300 * island.animationScale)) : 0
+    readonly property int crossFadeDuration: island.animations ? Math.max(160, Math.round(root.morphDuration * 0.70)) : 0
 
     function collapse() { peekDelay.stop(); leaveDelay.stop(); peek = false; noticeBump = false; noticeCard = false; hoverBlocked = islandHover.hovered; expanded = false; pinned = false }
     // An outside click steals window activation; that is the dismiss path
@@ -91,8 +95,8 @@ Window {
         width: root.expanded ? (root.page === 2 ? (systemPage.details ? 560 : 520) : root.page === 0 ? 424 : 456) : (root.peek || root.noticeBump ? 316 : 288)
         height: root.expanded ? ((root.page === 2 ? (systemPage.details ? 568 : 432) : root.page === 3 ? 400 : root.page === 1 ? (focusPage.pomodoro ? 240 : 216) : root.page === 5 || root.page === 6 ? 384 : root.page === 4 ? 336 : root.page === 0 ? (island.media.durationUs > 0 ? 254 : 216) : 288) + root.messageHeight) : (root.peek || root.noticeBump ? 54 : 40)
         clip: true
-        Behavior on width { NumberAnimation { duration: Theme.dur(280); easing.type: Easing.OutCubic } }
-        Behavior on height { NumberAnimation { duration: Theme.dur(280); easing.type: Easing.OutCubic } }
+        Behavior on width { NumberAnimation { duration: root.morphDuration; easing.type: Easing.OutCubic } }
+        Behavior on height { NumberAnimation { duration: root.morphDuration; easing.type: Easing.OutCubic } }
         onWidthChanged: region.restart()
         onHeightChanged: region.restart()
         Timer { id: region; interval: 0; onTriggered: island.updateInputRegion(surface.x, surface.width, surface.height) }
@@ -129,11 +133,11 @@ Window {
         RowLayout {
             id: compact
             anchors { top: parent.top; left: parent.left; right: parent.right; leftMargin: 26; rightMargin: 26 }
-            height: root.expanded ? 40 : surface.height
+            height: root.expanded ? 40 : (root.peek || root.noticeBump ? 54 : 40)
             spacing: 6
-            opacity: root.expanded || root.noticeCard ? 0 : 1
+            opacity: root.expanded || root.noticeCard ? 0 : (surface.height < 64 ? 1 : 0)
             visible: opacity > 0
-            Behavior on opacity { NumberAnimation { duration: Theme.dur(100) } }
+            Behavior on opacity { NumberAnimation { duration: island.animations ? Math.max(30, Math.round(root.morphDuration * 0.12)) : 0; easing.type: Easing.OutCubic } }
             Item {
                 Layout.preferredWidth: 24; Layout.preferredHeight: 24
                 Rectangle {
@@ -272,9 +276,9 @@ Window {
             id: content
             anchors { fill: parent; leftMargin: 34; rightMargin: 34; topMargin: 10; bottomMargin: 14 }
             spacing: 8
-            opacity: root.expanded && surface.height > 200 ? 1 : 0
+            opacity: root.expanded ? 1 : 0
             visible: opacity > 0
-            Behavior on opacity { NumberAnimation { duration: Theme.dur(140) } }
+            Behavior on opacity { NumberAnimation { duration: root.crossFadeDuration; easing.type: Easing.OutCubic } }
 
             Item {
                 objectName: "islandNavigation"

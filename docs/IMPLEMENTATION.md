@@ -168,3 +168,9 @@ Acceptance boundary: no Stopwatch mode (the backend has no counting-up session) 
 The System grid flickered once a second because its Repeater used the freshly built `cards` array as the model; every `island.statistics` sample recreated the array and the Repeater destroyed and rebuilt all delegates, resetting their meter Behaviors. The model is now `view.cards.length`, and each delegate reads `view.cards[index]`, so cards keep their identity and update in place. The meter eases to its new value over 420 ms OutCubic and the attention colour crossfades over 320 ms.
 
 `systemCardsKeepTheirIdentityAcrossSamples` opens the real System page, settles the first full sample (nvidia-smi is asynchronous), captures the card pointers, waits for the next `sampledAt`, and compares the same objects. All four suites pass.
+
+### Smooth island morph (0.6, follow-up)
+
+Expand and collapse used `Theme.dur(280)`; with this host's `AnimationDurationFactor` of 0.25 that is 70 ms, and the expanded content was gated on `surface.height > 200`, so the island snapped open, showed an empty shell, then faded the page in. The surface now morphs over `morphDuration` (`max(260, 300 × factor)` ms, OutCubic), the expanded content crossfades over 182 ms and the compact row over 31 ms. The height gate is gone; the compact row hides above 64 px and returns only when the surface is small, so the two rows never share the top during collapse. The compact row's own height is fixed at 40 px (54 while peeking) instead of following the animating surface, so its content no longer drifts into the middle of the shrinking panel.
+
+The handoff was checked with frame captures at 18 ms; the temporary capture test was removed. All four CTest suites pass.
