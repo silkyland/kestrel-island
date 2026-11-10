@@ -1,4 +1,5 @@
 #include "backend.h"
+#include <QDBusAbstractAdaptor>
 #include <QDBusConnection>
 #include <QDBusObjectPath>
 #include <QDBusVariant>
@@ -13,6 +14,17 @@
 #include <QTemporaryDir>
 #include <QtTest>
 
+static QQuickItem *findVisualItem(QQuickItem *parent, const QString &name) {
+  if (!parent)
+    return nullptr;
+  if (parent->objectName() == name)
+    return parent;
+  for (auto *child : parent->childItems())
+    if (auto *match = findVisualItem(child, name))
+      return match;
+  return nullptr;
+}
+
 class FakePlayer : public QObject {
   Q_OBJECT
   Q_CLASSINFO("D-Bus Interface", "org.mpris.MediaPlayer2.Player")
@@ -26,6 +38,8 @@ class FakePlayer : public QObject {
   Q_PROPERTY(bool CanSeek READ canSeek)
   Q_PROPERTY(qlonglong Position READ position)
   Q_PROPERTY(double Rate READ rate)
+  Q_PROPERTY(bool Shuffle READ shuffle WRITE setShuffle)
+  Q_PROPERTY(QString LoopStatus READ loopStatus WRITE setLoopStatus)
 public:
   bool playing = true;
   int skips = 0;
@@ -34,6 +48,12 @@ public:
   QString track = "/track/one";
   QString art;
   bool seekable = true;
+  bool shuffleOn = false;
+  QString loop = "None";
+  bool shuffle() const { return shuffleOn; }
+  void setShuffle(bool value) { shuffleOn = value; }
+  QString loopStatus() const { return loop; }
+  void setLoopStatus(const QString &value) { loop = value; }
   QString status() const { return playing ? "Playing" : "Paused"; }
   QVariantMap metadata() const {
     auto map = QVariantMap{
@@ -66,6 +86,53 @@ public slots:
       currentPosition = value;
     }
   }
+};
+
+class FakeDesktopHost : public QObject {
+  Q_OBJECT
+public:
+  uint next = 10;
+  bool locked = false, quiet = false;
+  int registrations = 0;
+};
+class FakeScreenAdaptor : public QDBusAbstractAdaptor {
+  Q_OBJECT
+  Q_CLASSINFO("D-Bus Interface", "org.freedesktop.ScreenSaver")
+public:
+  explicit FakeScreenAdaptor(FakeDesktopHost *parent)
+      : QDBusAbstractAdaptor(parent), host(parent) {}
+public slots:
+  uint Inhibit(const QString &, const QString &) { return ++host->next; }
+  void UnInhibit(uint) {}
+  bool GetActive() { return host->locked; }
+
+private:
+  FakeDesktopHost *host;
+};
+class FakeInhibitAdaptor : public QDBusAbstractAdaptor {
+  Q_OBJECT
+  Q_CLASSINFO("D-Bus Interface", "org.freedesktop.Notifications")
+  Q_PROPERTY(bool Inhibited READ inhibited)
+public:
+  explicit FakeInhibitAdaptor(FakeDesktopHost *parent)
+      : QDBusAbstractAdaptor(parent), host(parent) {}
+  bool inhibited() const { return host->quiet; }
+
+private:
+  FakeDesktopHost *host;
+};
+class FakeWatcherAdaptor : public QDBusAbstractAdaptor {
+  Q_OBJECT
+  Q_CLASSINFO("D-Bus Interface", "org.kde.NotificationManager")
+public:
+  explicit FakeWatcherAdaptor(FakeDesktopHost *parent)
+      : QDBusAbstractAdaptor(parent), host(parent) {}
+public slots:
+  void RegisterWatcher() { ++host->registrations; }
+  void UnRegisterWatcher() {}
+
+private:
+  FakeDesktopHost *host;
 };
 
 class BackendTest : public QObject {
@@ -137,7 +204,7 @@ private slots:
     QTRY_VERIFY(root->property("expanded").toBool());
     QVERIFY(!root->property("pinned").toBool());
     QCOMPARE(root->property("page").toInt(), 2);
-    QTRY_COMPARE(surface->height(), 480.0);
+    QTRY_COMPARE(surface->height(), 432.0);
     QTRY_COMPARE(surface->width(), 520.0);
     QVERIFY(QMetaObject::invokeMethod(root, "collapse"));
     QTest::qWait(350);
@@ -204,6 +271,95 @@ private slots:
     QVERIFY(!root->property("expanded").toBool());
     backend.setPreferredPage(0);
   }
+  void languageAndNotificationNotices() {
+    const auto oldOrganization = QCoreApplication::organizationName();
+    const auto oldApplication = QCoreApplication::applicationName();
+    QTemporaryDir config;
+    const auto restore = qScopeGuard([&] {
+      QCoreApplication::setOrganizationName(oldOrganization);
+      QCoreApplication::setApplicationName(oldApplication);
+    });
+    QCoreApplication::setOrganizationName("KestrelRegressionTests");
+    QCoreApplication::setApplicationName("Notices");
+    QSettings::setPath(QSettings::NativeFormat, QSettings::UserScope,
+                       config.path());
+    QSettings().setValue("notifications/validated", true);
+    QSettings().setValue("notifications/enabled", true);
+    QSettings().setValue("notifications/apps", "demo");
+    auto bus = QDBusConnection::sessionBus();
+    QVERIFY(bus.isConnected());
+    FakeDesktopHost host;
+    FakeScreenAdaptor screen(&host);
+    FakeInhibitAdaptor inhibit(&host);
+    FakeWatcherAdaptor watcher(&host);
+    QVERIFY(bus.registerService("org.freedesktop.ScreenSaver"));
+    QVERIFY(bus.registerService("org.freedesktop.Notifications"));
+    QVERIFY(bus.registerObject("/ScreenSaver", &host,
+                               QDBusConnection::ExportAdaptors));
+    QVERIFY(bus.registerObject("/org/freedesktop/Notifications", &host,
+                               QDBusConnection::ExportAdaptors));
+    {
+      Backend backend(nullptr, true);
+      QTRY_VERIFY(backend.notifications()->status().startsWith("Watching"));
+      backend.language()->report("Thai");
+      QCOMPARE(backend.activity()->notice()["title"].toString(),
+               "Language · Thai");
+      QVERIFY(backend.notifications()->ingest(bus.baseService(), 1, "demo", 0,
+                                              "Hello", "Body"));
+      QCOMPARE(backend.activity()->notice()["title"].toString(),
+               "demo · Hello");
+      QVERIFY(backend.notifications()->ingest(bus.baseService(), 2, "demo", 0,
+                                              "Again", "Body"));
+      QCOMPARE(backend.activity()->notice()["title"].toString(),
+               "demo · Again");
+    }
+    bus.unregisterObject("/ScreenSaver");
+    bus.unregisterObject("/org/freedesktop/Notifications");
+    bus.unregisterService("org.freedesktop.ScreenSaver");
+    bus.unregisterService("org.freedesktop.Notifications");
+  }
+  void noticeNodsCompactSurface() {
+    Backend backend(nullptr, false);
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("island", &backend);
+    engine.rootContext()->setContextProperty("previewMode", true);
+    engine.rootContext()->setContextProperty("startExpanded", false);
+    engine.load(QUrl("qrc:/qml/Main.qml"));
+    QVERIFY(!engine.rootObjects().isEmpty());
+    auto *root = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
+    QVERIFY(root);
+    root->show();
+    QVERIFY(QTest::qWaitForWindowExposed(root));
+    auto *surface = root->findChild<QQuickItem *>("islandSurface");
+    QVERIFY(surface);
+    QCOMPARE(surface->height(), 40.0);
+    // Card notices (language, notifications) swap the compact contents but
+    // keep the exact idle frame.
+    backend.language()->report("Thai");
+    QTRY_VERIFY(root->property("noticeCard").toBool());
+    QTest::qWait(60);
+    QCOMPARE(surface->height(), 40.0);
+    QCOMPARE(surface->width(), 288.0);
+    QTRY_COMPARE_WITH_TIMEOUT(root->property("noticeCard").toBool(), false,
+                              4000);
+    QTRY_COMPARE(surface->height(), 40.0);
+    // Ordinary notices keep the smaller nod.
+    backend.activity()->show("task:x", "Build done", 30, 2000);
+    QTRY_VERIFY(root->property("noticeBump").toBool());
+    QTRY_COMPARE(surface->height(), 54.0);
+    QTRY_COMPARE_WITH_TIMEOUT(root->property("noticeBump").toBool(), false,
+                              3000);
+    QTRY_COMPARE(surface->height(), 40.0);
+    // Expanded notices cross-fade the compact title without growing.
+    root->setProperty("expanded", true);
+    QTest::qWait(60);
+    backend.language()->report("English");
+    QTest::qWait(60);
+    QVERIFY(!root->property("noticeCard").toBool());
+    QVERIFY(!root->property("noticeBump").toBool());
+    QVERIFY(QMetaObject::invokeMethod(root, "collapse"));
+    backend.setPreferredPage(0);
+  }
   void allPagesKeepNavigationAndFooterInsideShape() {
     Backend backend(nullptr, false);
     QQmlApplicationEngine engine;
@@ -217,20 +373,78 @@ private slots:
     QVERIFY(QTest::qWaitForWindowExposed(root));
     auto *surface = root->findChild<QQuickItem *>("islandSurface");
     auto *navigation = root->findChild<QQuickItem *>("islandNavigation");
+    auto *tabs = root->findChild<QQuickItem *>("primaryTabs");
+    auto *actions = root->findChild<QQuickItem *>("navigationActions");
     auto *footer = root->findChild<QQuickItem *>("audioFooter");
-    QVERIFY(surface && navigation && footer);
-    const QList<int> heights{304, 384, 480, 360, 336, 384, 384, 288};
+    auto *slider = root->findChild<QQuickItem *>("volumeSlider");
+    QVERIFY(surface && navigation && tabs && actions && footer && slider);
+    const QList<int> heights{216, 384, 432, 400, 336, 384, 384, 288};
     for (int page = 0; page < 8; ++page) {
       root->setProperty("page", page);
       QTRY_COMPARE(surface->height(), double(heights[page]));
       QTest::qWait(30);
       const auto top = navigation->mapToItem(surface, QPointF());
-      const auto bottom = footer->mapToItem(
-          surface, QPointF(footer->width(), footer->height()));
       QVERIFY2(top.y() >= 0,
                qPrintable(QString("Navigation clipped on page %1").arg(page)));
-      QVERIFY2(bottom.y() <= surface->height() - 8,
-               qPrintable(QString("Footer clipped on page %1").arg(page)));
+      QCOMPARE(footer->isVisible(), page == 0);
+      QCOMPARE(slider->isVisible(), page == 0);
+      const auto tabsLeft = tabs->mapToItem(navigation, QPointF()).x();
+      QVERIFY2(qAbs(tabsLeft) < 1.0,
+               qPrintable(QString("Primary tabs do not start at the content "
+                                  "edge on page %1")
+                              .arg(page)));
+      const auto actionsRight =
+          actions->mapToItem(navigation, QPointF(actions->width(), 0)).x();
+      QVERIFY2(qAbs(actionsRight - navigation->width()) < 1.0,
+               qPrintable(QString("Navigation actions are not right-aligned on page %1")
+                              .arg(page)));
+      if (page == 0) {
+        const auto bottom = footer->mapToItem(
+            surface, QPointF(footer->width(), footer->height()));
+        QVERIFY2(bottom.y() <= surface->height() - 8,
+                 "Music footer is clipped");
+      }
+    }
+    root->setProperty("page", 3);
+    QTest::qWait(30);
+    auto *shortcuts = findVisualItem(root->contentItem(), "settingsShortcuts");
+    QVERIFY(shortcuts);
+    QList<QQuickItem *> shortcutButtons;
+    for (auto *child : shortcuts->childItems())
+      if (child->isVisible())
+        shortcutButtons.append(child);
+    QCOMPARE(shortcutButtons.size(), 3);
+    for (auto *button : shortcutButtons)
+      QVERIFY(qAbs(button->width() - shortcutButtons.first()->width()) < 1.0);
+    root->setProperty("page", 7);
+    QTest::qWait(40);
+    // Repeater delegates are visual children, so locate them by walking the
+    // page's item tree rather than QObject children.
+    auto *tools = findVisualItem(root->contentItem(), "toolsPage");
+    QVERIFY(tools);
+    QList<QQuickItem *> cards;
+    for (auto *child : tools->childItems())
+      if (child->objectName() == "toolCard")
+        cards.append(child);
+    QCOMPARE(cards.size(), 3);
+    for (auto *card : cards) {
+      const auto bottom =
+          card->mapToItem(surface, QPointF(0, card->height())).y();
+      QVERIFY2(bottom <= surface->height() - 6,
+               "A Tools card extends beyond the page content");
+    }
+    root->setProperty("page", 2);
+    QTest::qWait(30);
+    auto *grid = root->findChild<QQuickItem *>("systemTemperatures");
+    QVERIFY(grid);
+    QList<QQuickItem *> metricCards;
+    for (auto *child : grid->childItems())
+      if (child->objectName() == "metricCard")
+        metricCards.append(child);
+    if (metricCards.size() % 2 == 1) {
+      auto *last = metricCards.last();
+      QVERIFY2(qAbs(last->width() - grid->width()) < 1.0,
+               "The odd final System card should span the centered row");
     }
     // Opening System details grows the surface back to the detailed size.
     root->setProperty("page", 2);
@@ -249,7 +463,18 @@ private slots:
                 .y() <= surface->height() - 8,
         "Footer clipped on the expanded-details System page");
     systemPage->setProperty("details", false);
-    QTRY_COMPARE(surface->height(), 480.0);
+    QTRY_COMPARE(surface->height(), 432.0);
+    root->setProperty("page", 4);
+    QTest::qWait(30);
+    auto *awakeChoices =
+        findVisualItem(root->contentItem(), "awakeDurationChoices");
+    QVERIFY(awakeChoices);
+    const auto awakeCenter =
+        awakeChoices->mapToItem(awakeChoices->parentItem(),
+                                QPointF(awakeChoices->width() / 2, 0))
+            .x();
+    QVERIFY(qAbs(awakeCenter - awakeChoices->parentItem()->width() / 2) <
+            1.0);
     for (const auto &name : {"awakePage", "tasksPage", "notificationsPage"}) {
       auto *page = root->findChild<QObject *>(name);
       QVERIFY(page);
@@ -257,6 +482,24 @@ private slots:
       QCOMPARE(root->property("page").toInt(), 7);
     }
     root->setProperty("page", 1);
+    QTest::qWait(30);
+    auto *modeOptions =
+        findVisualItem(root->contentItem(), "focusModeOptions");
+    QVERIFY(modeOptions);
+    const auto modeCenter =
+        modeOptions->mapToItem(modeOptions->parentItem(),
+                               QPointF(modeOptions->width() / 2, 0))
+            .x();
+    QVERIFY(qAbs(modeCenter - modeOptions->parentItem()->width() / 2) < 1.0);
+    auto *durationControls =
+        root->findChild<QQuickItem *>("focusDurationControls");
+    QVERIFY(durationControls);
+    const auto durationCenter =
+        durationControls->mapToItem(durationControls->parentItem(),
+                                    QPointF(durationControls->width() / 2, 0))
+            .x();
+    QVERIFY(qAbs(durationCenter -
+                 durationControls->parentItem()->width() / 2) < 1.0);
     auto *mode = root->findChild<QObject *>("pomodoroMode");
     auto *start = root->findChild<QObject *>("startFocus");
     QVERIFY(mode && start);
@@ -264,11 +507,19 @@ private slots:
     QVERIFY(mode->property("checked").toBool());
     QTRY_COMPARE(surface->height(), 384.0);
     QTest::qWait(30);
+    auto *breakControls =
+        root->findChild<QQuickItem *>("focusPomodoroControls");
+    QVERIFY(breakControls);
+    const auto breakCenter =
+        breakControls->mapToItem(breakControls->parentItem(),
+                                 QPointF(breakControls->width() / 2, 0))
+            .x();
+    QVERIFY(qAbs(breakCenter - breakControls->parentItem()->width() / 2) <
+            1.0);
     auto *startItem = qobject_cast<QQuickItem *>(start);
     auto end = startItem->mapToItem(surface, QPointF(0, startItem->height()));
-    auto footerTop = footer->mapToItem(surface, QPointF());
-    QVERIFY2(end.y() <= footerTop.y() - 11,
-             "Pomodoro controls overlap the audio footer");
+    QVERIFY2(end.y() <= surface->height() - 12,
+             "Pomodoro controls overlap the bottom safe area");
     QVERIFY(QMetaObject::invokeMethod(start, "clicked"));
     QCOMPARE(backend.focus()->snapshot()["state"].toString(),
              QString("running"));
@@ -277,6 +528,30 @@ private slots:
     QVERIFY(QMetaObject::invokeMethod(root, "collapse"));
     QVERIFY(!root->property("expanded").toBool());
     backend.setPreferredPage(0);
+  }
+  void messageRowGrowsTheSurfaceInsteadOfClipping() {
+    Backend backend(nullptr, false);
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("island", &backend);
+    engine.rootContext()->setContextProperty("previewMode", true);
+    engine.rootContext()->setContextProperty("startExpanded", true);
+    engine.load(QUrl("qrc:/qml/Main.qml"));
+    QVERIFY(!engine.rootObjects().isEmpty());
+    auto *root = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
+    root->show();
+    QVERIFY(QTest::qWaitForWindowExposed(root));
+    auto *surface = root->findChild<QQuickItem *>("islandSurface");
+    auto *footer = root->findChild<QQuickItem *>("audioFooter");
+    QVERIFY(surface && footer);
+    QTRY_COMPARE(surface->height(), 216.0);
+    const auto before =
+        footer->mapToItem(surface, QPointF(0, footer->height())).y();
+    backend.setMessage("The player could not complete this action.");
+    QTRY_VERIFY(surface->height() > 216.0);
+    QTRY_VERIFY(surface->height() < 264.0);
+    // The error grows the island; the player keeps its exact bands.
+    QTRY_COMPARE(footer->mapToItem(surface, QPointF(0, footer->height())).y(),
+                 before);
   }
   void escapeStepsBackToToolsBeforeCollapsing() {
     Backend backend(nullptr, false);
@@ -331,12 +606,13 @@ private slots:
     root->show();
     QVERIFY(QTest::qWaitForWindowExposed(root));
     QTest::qWait(60);
-    // Repeater delegates are visual children only, so walk the navigation
-    // row's child items rather than the QObject tree.
+    // Repeater delegates are visual children only, so walk the nested tabs
+    // row rather than the QObject tree.
     QQuickItem *focusTab = nullptr;
     auto *nav = root->findChild<QQuickItem *>("islandNavigation");
-    QVERIFY(nav);
-    for (auto *item : nav->childItems())
+    auto *tabs = root->findChild<QQuickItem *>("primaryTabs");
+    QVERIFY(nav && tabs);
+    for (auto *item : tabs->childItems())
       if (item->property("label").toString() == "Focus")
         focusTab = item;
     QVERIFY(focusTab);
@@ -351,7 +627,7 @@ private slots:
     QCOMPARE(focusTab->property("implicitWidth").toDouble(), settled);
     root->setProperty("page", 0);
     QTest::qWait(60);
-    QCOMPARE(focusTab->property("implicitWidth").toDouble(), 40.0);
+    QCOMPARE(focusTab->property("implicitWidth").toDouble(), 34.0);
     backend.setPreferredPage(0);
   }
   void rejectsUnknownDisplayAndLoadsMoveTargets() {
@@ -570,6 +846,36 @@ private slots:
     }
     bus.unregisterObject("/org/mpris/MediaPlayer2");
     bus.unregisterService(service);
+  }
+  void shuffleAndRepeatRoundTrip() {
+    auto bus = QDBusConnection::sessionBus();
+    if (!bus.isConnected())
+      QSKIP("A session bus is required; run with dbus-run-session.");
+    const QString service = "org.mpris.MediaPlayer2.KestrelShuffleTest";
+    QVERIFY(bus.registerService(service));
+    FakePlayer player;
+    QVERIFY(bus.registerObject("/org/mpris/MediaPlayer2", &player,
+                               QDBusConnection::ExportAllProperties |
+                                   QDBusConnection::ExportAllSlots));
+    const auto cleanup = qScopeGuard([&] {
+      bus.unregisterObject("/org/mpris/MediaPlayer2");
+      bus.unregisterService(service);
+    });
+    Backend backend;
+    QTRY_COMPARE_WITH_TIMEOUT(backend.media().value("service").toString(),
+                              service, 5000);
+    QVERIFY(backend.media().value("canShuffle").toBool());
+    QVERIFY(backend.media().value("canLoop").toBool());
+    backend.setShuffle(true);
+    QTRY_VERIFY(player.shuffleOn);
+    QTRY_VERIFY(backend.media().value("shuffle").toBool());
+    backend.cycleLoop();
+    QTRY_COMPARE(player.loop, QString("Playlist"));
+    QTRY_COMPARE(backend.media().value("loop").toString(), QString("Playlist"));
+    backend.cycleLoop();
+    QTRY_COMPARE(player.loop, QString("Track"));
+    backend.cycleLoop();
+    QTRY_COMPARE(player.loop, QString("None"));
   }
   void pointerDragsReachMediaAndVolume() {
     QTemporaryDir directory;

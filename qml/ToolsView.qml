@@ -13,6 +13,7 @@ ColumnLayout {
         ]
         Rectangle {
             id: card
+            objectName: "toolCard"
             required property var modelData
             Layout.fillWidth: true
             implicitHeight: 58

@@ -5,16 +5,19 @@ Button {
     id: control
     property string symbol: ""
     property string label: ""
-    property bool prominent: false
+    property int idleWidth: 40
+    property int glyphSize: 20
+    // Transport buttons sit on a circle; tabs and utilities use the island's
+    // rounded-rect plates.
+    property bool circular: false
     property bool selected: false
     property bool dim: false
     readonly property bool showLabel: label.length > 0 && selected
-    implicitWidth: showLabel ? row.implicitWidth + 24 : 40
+    readonly property bool active: checked || selected
+    implicitWidth: showLabel ? row.implicitWidth + 24 : idleWidth
     implicitHeight: 40
     padding: 8
     icon.source: "qrc:/assets/icons/" + symbol + ".svg"
-    icon.width: 20
-    icon.height: 20
     display: AbstractButton.IconOnly
     Accessible.name: text
     opacity: !enabled ? 0.4 : down ? 0.8 : 1
@@ -30,11 +33,11 @@ Button {
             objectName: "buttonIcon"
             anchors.verticalCenter: parent.verticalCenter
             source: control.icon.source
-            width: 20; height: 20
-            sourceSize.width: 20
-            sourceSize.height: 20
+            width: control.glyphSize; height: control.glyphSize
+            sourceSize.width: control.glyphSize
+            sourceSize.height: control.glyphSize
             fillMode: Image.PreserveAspectFit
-            opacity: control.dim && !control.selected && !control.hovered ? 0.6 : 1
+            opacity: control.dim && !control.active && !control.hovered ? 0.6 : 1
         }
         Text {
             visible: control.showLabel
@@ -47,13 +50,13 @@ Button {
         }
     }
     background: Rectangle {
-        radius: control.prominent ? height / 2 : 10
-        color: control.prominent ? (control.down ? Qt.darker(Theme.tintFill, 1.12) : control.hovered ? Theme.tintFillHover : Theme.tintFill)
-               : control.down ? Theme.raisedPressed
-               : control.checked || control.selected ? Theme.selectedFill
-               : control.hovered || control.activeFocus ? Theme.raisedHover
+        radius: control.circular ? height / 2 : 10
+        color: control.down ? Theme.raisedPressed
+               : control.active ? Theme.selectedFill
+               : control.hovered || control.activeFocus ? (control.circular ? Theme.selectedFill : Theme.raisedHover)
                : "transparent"
-        border.width: control.activeFocus ? 2 : control.checked || control.selected ? 1 : 0
+        // A ring means keyboard focus, never selection.
+        border.width: control.activeFocus ? 2 : 0
         border.color: Theme.tint
         Behavior on color { ColorAnimation { duration: Theme.dur(120) } }
     }

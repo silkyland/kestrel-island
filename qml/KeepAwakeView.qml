@@ -16,7 +16,9 @@ ColumnLayout {
     Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: view.active ? (awakeState.timed ? Math.floor(awakeState.remaining/60).toString().padStart(2,"0")+":"+(awakeState.remaining%60).toString().padStart(2,"0") : "Until you stop") : "Stay awake for a while."; color: view.active ? Theme.ok : Theme.ink; font.pixelSize: view.active && awakeState.timed ? 36 : 20; font.weight: Font.Medium }
     Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: view.active ? "Display and automatic sleep inhibition confirmed." : "Temporarily keep the display and session awake. Choose how long."; color: Theme.secondary; font.pixelSize: 12; wrapMode: Text.WordWrap }
     RowLayout {
+        objectName: "awakeDurationChoices"
         visible: !view.active; enabled: !view.busy
+        Layout.alignment: Qt.AlignHCenter
         Repeater { model: [15,30,60]; IslandAction { required property int modelData; text: modelData+" min"; onClicked: island.awake.start(modelData) } }
         IslandAction { text: "Until off"; onClicked: island.awake.start(0) }
     }

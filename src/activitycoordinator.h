@@ -18,7 +18,7 @@ public:
   void upsert(const QVariantMap &activity, bool select = false);
   void remove(const QString &key);
   void show(const QString &key, const QString &title, int priority,
-            int ttl = 1600);
+            int ttl = 1600, bool card = false);
   Q_INVOKABLE void cycle();
   Q_INVOKABLE void select(const QString &key);
   Q_INVOKABLE void dismiss();
@@ -29,6 +29,7 @@ signals:
 private:
   QVariantList m_activities, m_notices;
   QString m_selection;
+  quint64 m_sequence = 0;
   std::function<qint64()> m_now;
   QTimer m_expiry;
 };

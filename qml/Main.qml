@@ -19,14 +19,28 @@ Window {
     onPageChanged: { island.setCurrentPage(page); if (expanded && island.animations) pageFade.restart() }
     onExpandedChanged: { island.setExpanded(expanded); if (expanded) peek = false }
     property bool peek: false
+    property bool noticeBump: false
+    property bool noticeCard: false
+    property string lastNotice
+    readonly property string noticeSymbol: {
+        const key = String(island.activity.notice.key || "")
+        if (key === "language") return "language"
+        if (key.indexOf("notification:") === 0) return "bell"
+        if (key.indexOf("task:") === 0) return "terminal"
+        if (key === "focus-complete") return "timer"
+        return "activities"
+    }
     Component.onCompleted: { page = island.preferredPage; island.setCurrentPage(page); island.setExpanded(expanded) }
     readonly property color ink: Theme.ink
     readonly property color secondary: Theme.secondary
     readonly property color accent: Theme.accent
     readonly property bool playing: island.media.playing === true
     readonly property bool available: island.media.available === true
+    // A transient failure text adds a row below the page; the surface grows
+    // by that row so the page keeps its exact bands instead of being clipped.
+    readonly property int messageHeight: island.message.length > 0 ? Math.ceil(messageLabel.implicitHeight) + 8 : 0
 
-    function collapse() { peekDelay.stop(); leaveDelay.stop(); peek = false; hoverBlocked = islandHover.hovered; expanded = false; pinned = false }
+    function collapse() { peekDelay.stop(); leaveDelay.stop(); peek = false; noticeBump = false; noticeCard = false; hoverBlocked = islandHover.hovered; expanded = false; pinned = false }
     // An outside click steals window activation; that is the dismiss path
     // unless the island is explicitly pinned.
     function dismissOutside() { if (expanded && !pinned) collapse() }
@@ -46,15 +60,36 @@ Window {
     // Escape closes the inner layer first: tool child pages step back to
     // Tools, everything else collapses the island.
     Shortcut { sequence: "Escape"; onActivated: { if (root.page >= 4 && root.page <= 6) root.navigate(7); else root.collapse() } }
+    Connections {
+        target: island.activity
+        // A fresh notice nods the compact surface once (same nod geometry as
+        // the hover peek); the title itself cross-fades until expiry.
+        function onChanged() {
+            const stamp = String(island.activity.notice.key || "") + ":" + String(island.activity.notice.seq || "")
+            if (stamp === root.lastNotice) return
+            root.lastNotice = stamp
+            if (island.activity.notice.key && !root.expanded && island.animations) {
+                if (island.activity.notice.card) {
+                    root.noticeCard = true
+                    noticeCardDelay.restart()
+                } else {
+                    root.noticeBump = true
+                    noticeBumpDelay.restart()
+                }
+            }
+        }
+    }
     Timer { id: peekDelay; interval: 120; onTriggered: if (!root.expanded && !root.hoverBlocked && island.hoverExpand && island.animations) root.peek = true }
+    Timer { id: noticeBumpDelay; interval: 800; onTriggered: root.noticeBump = false }
+    Timer { id: noticeCardDelay; interval: 1600; onTriggered: root.noticeCard = false }
     Timer { id: leaveDelay; interval: 180; onTriggered: if (!root.pinned) root.expanded = false }
 
     Item {
         id: surface
         anchors.horizontalCenter: parent.horizontalCenter
         objectName: "islandSurface"
-        width: root.expanded ? (root.page === 2 ? (systemPage.details ? 560 : 520) : 456) : (root.peek ? 316 : 288)
-        height: root.expanded ? (root.page === 2 ? (systemPage.details ? 568 : 480) : root.page === 3 ? 360 : root.page === 1 || root.page === 5 || root.page === 6 ? 384 : root.page === 4 ? 336 : root.page === 0 ? 304 : 288) : (root.peek ? 54 : 40)
+        width: root.expanded ? (root.page === 2 ? (systemPage.details ? 560 : 520) : root.page === 0 ? 424 : 456) : (root.peek || root.noticeBump ? 316 : 288)
+        height: root.expanded ? ((root.page === 2 ? (systemPage.details ? 568 : 432) : root.page === 3 ? 400 : root.page === 1 || root.page === 5 || root.page === 6 ? 384 : root.page === 4 ? 336 : root.page === 0 ? (island.media.durationUs > 0 ? 254 : 216) : 288) + root.messageHeight) : (root.peek || root.noticeBump ? 54 : 40)
         clip: true
         Behavior on width { NumberAnimation { duration: Theme.dur(280); easing.type: Easing.OutCubic } }
         Behavior on height { NumberAnimation { duration: Theme.dur(280); easing.type: Easing.OutCubic } }
@@ -96,7 +131,7 @@ Window {
             anchors { top: parent.top; left: parent.left; right: parent.right; leftMargin: 26; rightMargin: 26 }
             height: root.expanded ? 40 : surface.height
             spacing: 6
-            opacity: root.expanded ? 0 : 1
+            opacity: root.expanded || root.noticeCard ? 0 : 1
             visible: opacity > 0
             Behavior on opacity { NumberAnimation { duration: Theme.dur(100) } }
             Item {
@@ -187,6 +222,33 @@ Window {
             }
         }
 
+        // Transient event card: same compact frame, but only the event icon
+        // and title show while every other control stays hidden.
+        Row {
+            anchors.centerIn: parent
+            spacing: 8
+            opacity: !root.expanded && root.noticeCard ? 1 : 0
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: Theme.dur(140) } }
+            Image {
+                anchors.verticalCenter: parent.verticalCenter
+                width: 18; height: 18
+                source: "qrc:/assets/icons/" + root.noticeSymbol + ".svg"
+                sourceSize.width: 20; sourceSize.height: 20
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                textFormat: Text.PlainText
+                text: island.activity.notice.title || ""
+                color: root.ink
+                font.pixelSize: 14
+                font.weight: Font.Medium
+                font.features: {"tnum": 1}
+                elide: Text.ElideRight
+                width: Math.min(implicitWidth, 220)
+            }
+        }
+
         MouseArea {
             objectName: "compactMoveHandle"
             x: 24; y: 0; width: surface.width - (island.activity.activities.length > 1 ? 110 : 80); height: surface.height
@@ -210,47 +272,65 @@ Window {
             id: content
             anchors { fill: parent; leftMargin: 34; rightMargin: 34; topMargin: 10; bottomMargin: 14 }
             spacing: 8
-            opacity: root.expanded && surface.height > 260 ? 1 : 0
+            opacity: root.expanded && surface.height > 200 ? 1 : 0
             visible: opacity > 0
             Behavior on opacity { NumberAnimation { duration: Theme.dur(140) } }
 
-            RowLayout {
+            Item {
                 objectName: "islandNavigation"
                 Layout.fillWidth: true
-                spacing: 4
-                Repeater {
-                    model: [
-                        {name: "Music", symbol: "music"},
-                        {name: "Focus", symbol: "timer"},
-                        {name: "System", symbol: "cpu"},
-                        {name: "Tools", symbol: "tools"}
-                    ]
-                    IslandButton {
-                        required property int index
-                        required property var modelData
-                        text: modelData.name + " tab"
-                        label: modelData.name
-                        symbol: modelData.symbol
-                        implicitHeight: 32
-                        dim: true
-                        selected: index === 3 ? root.page >= 4 : root.page === index
-                        onClicked: root.navigate(index === 3 ? 7 : index)
+                Layout.preferredHeight: 36
+                // Page tabs take the leading edge, the window actions the
+                // trailing edge: the same inset as the player below.
+                RowLayout {
+                    id: primaryTabs
+                    objectName: "primaryTabs"
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 2
+                    Repeater {
+                        model: [
+                            {name: "Music", symbol: "music"},
+                            {name: "Focus", symbol: "timer"},
+                            {name: "System", symbol: "cpu"},
+                            {name: "Tools", symbol: "tools"}
+                        ]
+                        IslandButton {
+                            required property int index
+                            required property var modelData
+                            text: modelData.name + " tab"
+                            label: modelData.name
+                            symbol: modelData.symbol
+                            glyphSize: 18
+                            idleWidth: 34
+                            implicitHeight: 32
+                            dim: true
+                            selected: index === 3 ? root.page >= 4 : root.page === index
+                            onClicked: root.navigate(index === 3 ? 7 : index)
+                        }
                     }
                 }
-                Item { Layout.fillWidth: true }
-                IslandButton { text: "Switch activity"; symbol: "activities"; dim: true; implicitWidth: 30; implicitHeight: 30; visible: island.activity.activities.length > 1; onClicked: { island.activity.cycle(); root.page = island.activity.selected.page || 0; } }
-                IslandButton {
-                    objectName: "pinButton"
-                    text: root.pinned ? "Unpin island" : "Pin island"
-                    symbol: "pin"
-                    dim: true
-                    implicitWidth: 30; implicitHeight: 30
-                    checkable: true
-                    checked: root.pinned
-                    onClicked: root.pinned = checked
+                RowLayout {
+                    id: navigationActions
+                    objectName: "navigationActions"
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 2
+                    IslandButton { text: "Switch activity"; symbol: "activities"; glyphSize: 18; dim: true; implicitWidth: 30; implicitHeight: 30; visible: island.activity.activities.length > 1; onClicked: { island.activity.cycle(); root.page = island.activity.selected.page || 0; } }
+                    IslandButton {
+                        objectName: "pinButton"
+                        text: root.pinned ? "Unpin island" : "Pin island"
+                        symbol: root.pinned ? "pin-filled" : "pin"
+                        glyphSize: 18
+                        dim: true
+                        implicitWidth: 30; implicitHeight: 30
+                        checkable: true
+                        checked: root.pinned
+                        onClicked: root.pinned = checked
+                    }
+                    IslandButton { text: "Settings"; symbol: "configure"; glyphSize: 18; dim: true; implicitWidth: 30; implicitHeight: 30; onClicked: root.showSettings() }
+                    IslandButton { text: "Collapse"; symbol: "arrow-up"; glyphSize: 18; dim: true; implicitWidth: 30; implicitHeight: 30; onClicked: root.collapse() }
                 }
-                IslandButton { text: "Settings"; symbol: "configure"; dim: true; implicitWidth: 30; implicitHeight: 30; onClicked: root.showSettings() }
-                IslandButton { text: "Collapse"; symbol: "arrow-up"; dim: true; implicitWidth: 30; implicitHeight: 30; onClicked: root.collapse() }
             }
 
             StackLayout {
@@ -278,9 +358,10 @@ Window {
                         spacing: 4
                         Text { textFormat: Text.PlainText; text: "Island settings"; color: root.ink; font.pixelSize: 20; font.weight: Font.DemiBold }
                         RowLayout {
-                            IslandAction { text: "Keep awake"; symbol: "coffee"; onClicked: { root.page=4; } }
-                            IslandAction { text: "Tasks"; symbol: "terminal"; onClicked: { root.page=5; } }
-                            IslandAction { text: "Inbox"; symbol: "bell"; onClicked: { root.page=6; } }
+                            objectName: "settingsShortcuts"
+                            IslandAction { Layout.fillWidth: true; Layout.preferredWidth: 1; text: "Keep awake"; symbol: "coffee"; onClicked: { root.page=4; } }
+                            IslandAction { Layout.fillWidth: true; Layout.preferredWidth: 1; text: "Tasks"; symbol: "terminal"; onClicked: { root.page=5; } }
+                            IslandAction { Layout.fillWidth: true; Layout.preferredWidth: 1; text: "Inbox"; symbol: "bell"; onClicked: { root.page=6; } }
                         }
                         Text { textFormat: Text.PlainText; text: "POSITION"; color: root.secondary; font.pixelSize: 10; font.weight: Font.DemiBold; font.letterSpacing: 1; Layout.topMargin: 6 }
                         RowLayout {
@@ -317,7 +398,17 @@ Window {
                             onToggled: island.setHoverExpand(checked)
                         }
                         Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: "Hover gives a peek. Click to open; it stays until you close it.\nDrag the compact title to another display."; color: root.secondary; font.pixelSize: 11; wrapMode: Text.WordWrap }
-                        IslandCheck { text: "Audio / microphone feedback"; checked: island.audioFeedback; onToggled: island.setAudioFeedback(checked) }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            IslandCheck { Layout.fillWidth: true; text: "Audio / microphone feedback"; checked: island.audioFeedback; onToggled: island.setAudioFeedback(checked) }
+                            IslandButton {
+                                visible: island.audioFeedback && island.micAvailable
+                                text: island.micMuted ? "Unmute default microphone" : "Mute default microphone"
+                                symbol: island.micMuted ? "microphone-muted" : "microphone"
+                                implicitWidth: 32; implicitHeight: 32
+                                onClicked: island.toggleMicMute()
+                            }
+                        }
                         Text { textFormat: Text.PlainText; Layout.fillWidth: true; text: "New activity sources are optional. Music keeps its automatic source selection."; color: root.secondary; font.pixelSize: 11; wrapMode: Text.WordWrap }
                         }
                     }
@@ -326,35 +417,25 @@ Window {
                 KeepAwakeView { objectName: "awakePage"; onBackRequested: root.navigate(7) }
                 TasksView { objectName: "tasksPage"; onBackRequested: root.navigate(7) }
                 NotificationsView { objectName: "notificationsPage"; onBackRequested: root.navigate(7) }
-                ToolsView { onOpenPage: function(page) { root.navigate(page) } }
+                ToolsView { objectName: "toolsPage"; onOpenPage: function(page) { root.navigate(page) } }
 
             }
 
-            Rectangle { Layout.fillWidth: true; height: 1; color: Theme.divider }
-            RowLayout {
-                objectName: "audioFooter"
-                Layout.fillWidth: true; spacing: 10
-                IslandButton { objectName: "microphoneMuteButton"; text: island.micMuted ? "Unmute default microphone" : "Mute default microphone"; symbol: island.micMuted ? "microphone-muted" : "microphone"; implicitWidth: 28; implicitHeight: 28; visible: island.audioFeedback; enabled: island.micAvailable; onClicked: island.toggleMicMute() }
-                IslandButton { text: island.muted ? "Unmute" : "Mute"; symbol: island.muted ? "audio-volume-muted" : "audio-volume-high"; implicitWidth: 28; implicitHeight: 28; enabled: island.audioAvailable; onClicked: island.toggleMute() }
-                Slider {
-                    id: volumeSlider
-                    objectName: "volumeSlider"
-                    // Custom visual items have no implicit size in the KDE style.
-                    implicitHeight: 28
-                    property int requestedVolume: 0
-                    Layout.fillWidth: true
-                    from: 0; to: 100
-                    enabled: island.audioAvailable
-                    Accessible.name: "Output volume"
-                    onMoved: { requestedVolume = Math.round(value); volumeDebounce.restart() }
-                    Binding { target: volumeSlider; property: "value"; value: island.volume; when: !volumeSlider.pressed }
-                    Timer { id: volumeDebounce; interval: 100; onTriggered: island.setVolume(volumeSlider.requestedVolume) }
-                    background: Rectangle { x: volumeSlider.leftPadding; y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2; width: volumeSlider.availableWidth; height: 4; radius: 2; color: Theme.track; Rectangle { width: volumeSlider.visualPosition * parent.width; height: parent.height; radius: 2; color: root.accent } }
-                    handle: Rectangle { x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width); y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2; width: 12; height: 12; radius: 6; color: volumeSlider.enabled ? root.ink : root.secondary; border.width: volumeSlider.activeFocus ? 2 : 0; border.color: root.accent }
-                }
-                Text { textFormat: Text.PlainText; text: island.audioAvailable ? island.volume + "%" : "No audio"; color: root.secondary; font.pixelSize: 11; Layout.preferredWidth: 48; horizontalAlignment: Text.AlignRight }
+            // The failure line takes a real row; the surface grew by
+            // messageHeight above, so the page bands above keep their size.
+            Text {
+                id: messageLabel
+                objectName: "messageLabel"
+                Layout.fillWidth: true
+                visible: island.message.length > 0
+                textFormat: Text.PlainText
+                text: island.message
+                color: Theme.timer
+                font.pixelSize: 11
+                wrapMode: Text.WordWrap
+                maximumLineCount: 2
+                elide: Text.ElideRight
             }
-            Text { textFormat: Text.PlainText; Layout.fillWidth: true; visible: island.message.length > 0; text: island.message; color: Theme.timer; font.pixelSize: 11; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight }
         }
     }
 }

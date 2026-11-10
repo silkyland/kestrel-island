@@ -53,6 +53,7 @@ Backend::Backend(QObject *parent, bool live)
       m_notifications(
           this, live,
           m_settings.value("notifications/validated", false).toBool()),
+      m_language(this, live),
       m_live(live) {
   // KDE's global animation speed, read once at startup. A factor of 0
   // disables motion; otherwise durations scale inside [0.25, 1].
@@ -143,14 +144,37 @@ Backend::Backend(QObject *parent, bool live)
       live && m_settings.value("notifications/enabled", false).toBool(),
       m_settings.value("notifications/apps").toStringList());
   connect(&m_notifications, &NotificationsService::changed, this, [this] {
-    auto n = m_notifications.entries().size();
-    if (n)
-      m_activity.upsert({{"key", "notifications"},
-                         {"title", QString("%1 notification(s)").arg(n)},
-                         {"page", 6}});
-    else
+    const auto entries = m_notifications.entries();
+    if (!entries.isEmpty()) {
+      const auto newest = entries.first().toMap();
+      const auto id = newest["id"].toUInt();
+      if (!m_seenNotifications.contains(id)) {
+        auto title = newest["app"].toString();
+        const auto summary = newest["summary"].toString();
+        if (!summary.isEmpty())
+          title += (title.isEmpty() ? QString() : QStringLiteral(" · ")) +
+                   summary;
+        if (!title.isEmpty())
+          m_activity.show("notification:" + QString::number(id), title, 35,
+                          5000, true);
+      }
+    }
+    m_seenNotifications.clear();
+    for (const auto &entry : entries)
+      m_seenNotifications.insert(entry.toMap()["id"].toUInt());
+    if (entries.isEmpty())
       m_activity.remove("notifications");
+    else
+      m_activity.upsert(
+          {{"key", "notifications"},
+           {"title", QString("%1 notification(s)").arg(entries.size())},
+           {"page", 6}});
   });
+  connect(&m_language, &LanguageService::switched, this,
+          [this](const QString &layout) {
+            m_activity.show("language", "Language · " + layout, 30, 3500,
+                            true);
+          });
   connect(this, &Backend::mediaChanged, this, [this] {
     m_mediaSample.restart();
     if (m_media["available"].toBool())
@@ -286,6 +310,14 @@ QVariantMap Backend::normalizeMedia(const QString &service,
       {"rate", properties.value("Rate", 1.0).toDouble()},
       {"canSeek", properties.value("CanControl").toBool() &&
                       properties.value("CanSeek").toBool()},
+      // Shuffle and repeat are optional MPRIS properties: a player that does
+      // not publish them gets no button rather than a dead one.
+      {"shuffle", properties.value("Shuffle").toBool()},
+      {"loop", properties.value("LoopStatus", "None").toString()},
+      {"canShuffle", properties.contains("Shuffle") &&
+                         properties.value("CanControl").toBool()},
+      {"canLoop", properties.contains("LoopStatus") &&
+                      properties.value("CanControl").toBool()},
       {"player", service.section('.', 3).section('.', 0, 0)}};
 }
 
@@ -442,6 +474,56 @@ void Backend::mediaAction(const QString &method) {
             if (call->isError())
               setMessage("The player could not complete this action.");
             call->deleteLater();
+            pollMedia();
+          });
+}
+
+void Backend::setShuffle(bool enabled) {
+  const auto service = m_media.value("service").toString();
+  if (service.isEmpty() || !m_media.value("canShuffle").toBool())
+    return;
+  auto message = QDBusMessage::createMethodCall(
+      service, "/org/mpris/MediaPlayer2", "org.freedesktop.DBus.Properties",
+      "Set");
+  message << "org.mpris.MediaPlayer2.Player" << "Shuffle"
+          << QVariant::fromValue(QDBusVariant(enabled));
+  // Show the switch at once; the poll below confirms or reverts it.
+  m_media["shuffle"] = enabled;
+  emit mediaChanged();
+  auto *watcher = new QDBusPendingCallWatcher(
+      QDBusConnection::sessionBus().asyncCall(message, 1500), this);
+  connect(watcher, &QDBusPendingCallWatcher::finished, this,
+          [this](QDBusPendingCallWatcher *call) {
+            call->deleteLater();
+            if (call->isError())
+              setMessage("The player could not change shuffle.");
+            pollMedia();
+          });
+}
+
+void Backend::cycleLoop() {
+  const auto service = m_media.value("service").toString();
+  if (service.isEmpty() || !m_media.value("canLoop").toBool())
+    return;
+  const auto current = m_media.value("loop").toString();
+  const auto next = current == "None"       ? "Playlist"
+                    : current == "Playlist" ? "Track"
+                                            : "None";
+  auto message = QDBusMessage::createMethodCall(
+      service, "/org/mpris/MediaPlayer2", "org.freedesktop.DBus.Properties",
+      "Set");
+  message << "org.mpris.MediaPlayer2.Player" << "LoopStatus"
+          << QVariant::fromValue(QDBusVariant(next));
+  // Show the next step at once; the poll below confirms or reverts it.
+  m_media["loop"] = next;
+  emit mediaChanged();
+  auto *watcher = new QDBusPendingCallWatcher(
+      QDBusConnection::sessionBus().asyncCall(message, 1500), this);
+  connect(watcher, &QDBusPendingCallWatcher::finished, this,
+          [this](QDBusPendingCallWatcher *call) {
+            call->deleteLater();
+            if (call->isError())
+              setMessage("The player could not change repeat.");
             pollMedia();
           });
 }

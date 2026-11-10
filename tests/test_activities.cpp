@@ -1,11 +1,13 @@
 #include "activitycoordinator.h"
 #include "focussession.h"
 #include "keepawakeservice.h"
+#include "languageservice.h"
 #include "notificationsservice.h"
 #include "systemmonitor.h"
 #include "taskactivityservice.h"
 #include <QDBusAbstractAdaptor>
 #include <QDBusMessage>
+#include <QDBusMetaType>
 #include <QDBusPendingCallWatcher>
 #include <QDBusPendingReply>
 #include <QDBusVariant>
@@ -82,6 +84,39 @@ public:
 public slots:
   void RegisterWatcher() { ++host->registrations; }
   void UnRegisterWatcher() { ++host->unregistrations; }
+
+private:
+  FakeDesktop *host;
+};
+
+struct FakeLayoutNames {
+  QString shortName, displayName, longName;
+};
+Q_DECLARE_METATYPE(FakeLayoutNames)
+QDBusArgument &operator<<(QDBusArgument &argument,
+                          const FakeLayoutNames &names) {
+  argument.beginStructure();
+  argument << names.shortName << names.displayName << names.longName;
+  argument.endStructure();
+  return argument;
+}
+const QDBusArgument &operator>>(const QDBusArgument &argument,
+                                FakeLayoutNames &names) {
+  argument.beginStructure();
+  argument >> names.shortName >> names.displayName >> names.longName;
+  argument.endStructure();
+  return argument;
+}
+class KeyboardAdaptor : public QDBusAbstractAdaptor {
+  Q_OBJECT
+  Q_CLASSINFO("D-Bus Interface", "org.kde.KeyboardLayouts")
+public:
+  explicit KeyboardAdaptor(FakeDesktop *parent)
+      : QDBusAbstractAdaptor(parent), host(parent) {}
+  QList<FakeLayoutNames> names;
+public slots:
+  uint getLayout() { return 0; }
+  QList<FakeLayoutNames> getLayoutsList() { return names; }
 
 private:
   FakeDesktop *host;
@@ -337,6 +372,43 @@ private slots:
     bus.unregisterObject("/ScreenSaver");
     bus.unregisterObject("/org/freedesktop/Notifications");
     bus.unregisterService("org.freedesktop.ScreenSaver");
+  }
+  void languageSwitchResolvesLayoutNames() {
+    auto bus = QDBusConnection::sessionBus();
+    QVERIFY(bus.isConnected());
+    qDBusRegisterMetaType<FakeLayoutNames>();
+    qDBusRegisterMetaType<QList<FakeLayoutNames>>();
+    FakeDesktop host;
+    KeyboardAdaptor keyboard(&host);
+    keyboard.names = {{"us", "us", "English (US)"}, {"th", "th", "Thai"}};
+    QVERIFY(bus.registerService("org.kde.keyboard"));
+    QVERIFY(bus.registerObject("/Layouts", &host,
+                               QDBusConnection::ExportAdaptors));
+    {
+      LanguageService language;
+      QTRY_VERIFY(language.available());
+      QSignalSpy spy(&language, &LanguageService::switched);
+      auto index = QDBusMessage::createSignal(
+          "/Layouts", "org.kde.KeyboardLayouts", "layoutChanged");
+      index << uint(1);
+      QVERIFY(bus.send(index));
+      QTRY_COMPARE(spy.size(), 1);
+      QCOMPARE(spy.first().first().toString(), QString("Thai"));
+      QCOMPARE(language.layout(), QString("Thai"));
+      // The older string-based daemon resolves through the same list.
+      auto legacy = QDBusMessage::createSignal(
+          "/Layouts", "org.kde.KeyboardLayouts", "currentLayoutChanged");
+      legacy << QString("us");
+      QVERIFY(bus.send(legacy));
+      QTRY_COMPARE(spy.size(), 2);
+      QCOMPARE(spy.at(1).first().toString(), QString("English (US)"));
+      // Re-reporting the current layout does not re-announce.
+      QVERIFY(bus.send(legacy));
+      QTest::qWait(300);
+      QCOMPARE(spy.size(), 2);
+    }
+    bus.unregisterObject("/Layouts");
+    bus.unregisterService("org.kde.keyboard");
   }
   void notificationGateFilteringAndSessionClear() {
     auto bus = QDBusConnection::sessionBus();

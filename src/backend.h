@@ -3,6 +3,7 @@
 #include "activitycoordinator.h"
 #include "focussession.h"
 #include "keepawakeservice.h"
+#include "languageservice.h"
 #include "notificationsservice.h"
 #include "systemmonitor.h"
 #include "taskactivityservice.h"
@@ -11,6 +12,7 @@
 #include <QObject>
 #include <QPointer>
 #include <QQueue>
+#include <QSet>
 #include <QSettings>
 #include <QTimer>
 #include <QVariantMap>
@@ -76,6 +78,7 @@ public:
   KeepAwakeService *awake() { return &m_awake; }
   TaskActivityService *tasks() { return &m_tasks; }
   NotificationsService *notifications() { return &m_notifications; }
+  LanguageService *language() { return &m_language; }
   bool audioFeedback() const {
     return m_settings.value("audioFeedback", false).toBool();
   }
@@ -110,6 +113,8 @@ public:
   void attach(QQuickWindow *window, QSystemTrayIcon *tray);
   void position();
   Q_INVOKABLE void mediaAction(const QString &method);
+  Q_INVOKABLE void setShuffle(bool enabled);
+  Q_INVOKABLE void cycleLoop();
   Q_INVOKABLE void setVolume(int volume);
   Q_INVOKABLE void toggleMute();
   Q_INVOKABLE void startTimer(int minutes);
@@ -160,6 +165,8 @@ private:
   KeepAwakeService m_awake{this};
   TaskActivityService m_tasks{this};
   NotificationsService m_notifications;
+  LanguageService m_language;
+  QSet<quint32> m_seenNotifications;
   QPointer<QQuickWindow> m_window;
   QSystemTrayIcon *m_tray = nullptr;
   QPointer<QMenu> m_menu;

@@ -40,16 +40,4 @@ QtObject {
         const c = Qt.color(raw)
         return contrast(c, surface) >= 4.5 ? c : accent
     }
-    readonly property color tintInk: contrast(ink, tint) >= contrast(accentInk, tint) ? ink : accentInk
-    // Tint darkened enough that white transport icons keep >= 4.5:1 contrast.
-    readonly property color tintFill: {
-        const h = tint.hslHue, s = tint.hslSaturation
-        for (var l = tint.hslLightness; l > 0; l -= 0.02) {
-            const c = Qt.hsla(h, s, l, 1)
-            if (contrast("#ffffff", c) >= 4.5)
-                return c
-        }
-        return Qt.hsla(h, s, 0, 1)
-    }
-    readonly property color tintFillHover: Qt.hsla(tintFill.hslHue, tintFill.hslSaturation, Math.min(1, tintFill.hslLightness + 0.08), 1)
 }

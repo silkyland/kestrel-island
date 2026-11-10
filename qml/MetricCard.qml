@@ -7,6 +7,7 @@ import QtQuick.Layouts
 // or disk free < 10%). `meter` < 0 hides the meter.
 Rectangle {
     id: card
+    objectName: "metricCard"
     required property string title
     property string symbol: ""
     property string value: ""

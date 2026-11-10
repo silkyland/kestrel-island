@@ -35,3 +35,7 @@ The user approved docs/PLAN.md and requested implementation: activity arbitratio
 ## Requested system detail (0.3)
 
 User explicitly requested real CPU/GPU use, RAM remaining and disk used/free, plus clearer navigation. These live in the notch System page, not a separate monitoring app. Keep the compact shape and hover behavior. Tools provides direct access to the existing optional features.
+
+## Music parity (0.5)
+
+The user reported the music page as visually broken and asked for it to read like Vorssaint's Dynamic Island player one-to-one, with the missing features added. The music surface is now one player block: 56 px cover, 14/13 px title and artist, elapsed/remaining timeline, five equal transport places with shuffle and repeat beside the transport, and the volume row inside the player. The page is 254 px tall when a timeline exists and 216 px when it does not. Page tabs sit at the leading edge and island actions at the trailing edge. Shuffle and repeat come from MPRIS and appear only when the player publishes them; no manual source picker or browser identity returns.

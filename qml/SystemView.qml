@@ -91,7 +91,9 @@ Item {
                     model: view.cards
                     MetricCard {
                         required property var modelData
+                        required property int index
                         Layout.fillWidth: true
+                        Layout.columnSpan: view.cards.length % 2 === 1 && index === view.cards.length - 1 ? 2 : 1
                         title: modelData.title
                         symbol: modelData.symbol
                         value: modelData.value

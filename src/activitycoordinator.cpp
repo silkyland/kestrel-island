@@ -51,21 +51,23 @@ void ActivityCoordinator::remove(const QString &key) {
     emit changed();
 }
 void ActivityCoordinator::show(const QString &key, const QString &title,
-                               int priority, int ttl) {
+                               int priority, int ttl, bool card) {
   m_notices.removeIf(
       [&](const QVariant &v) { return v.toMap().value("key") == key; });
   m_notices << QVariantMap{{"key", key},
                            {"title", title.left(160)},
                            {"priority", priority},
                            {"expires", m_now() + qBound(100, ttl, 60000)},
-                           {"created", m_now()}};
+                           {"created", m_now()},
+                           {"card", card},
+                           {"seq", ++m_sequence}};
   std::stable_sort(m_notices.begin(), m_notices.end(),
                    [](const QVariant &a, const QVariant &b) {
                      auto x = a.toMap(), y = b.toMap();
                      return x["priority"].toInt() != y["priority"].toInt()
                                 ? x["priority"].toInt() > y["priority"].toInt()
-                                : x["created"].toLongLong() >
-                                      y["created"].toLongLong();
+                                : x["seq"].toULongLong() >
+                                      y["seq"].toULongLong();
                    });
   while (m_notices.size() > 8)
     m_notices.removeLast();

@@ -8,7 +8,8 @@ qt_standard_project_setup()
 set(KESTREL_SOURCES src/backend.cpp src/backend.h src/systemmonitor.cpp src/systemmonitor.h src/activitycoordinator.cpp src/activitycoordinator.h
     src/focussession.cpp src/focussession.h src/keepawakeservice.cpp src/keepawakeservice.h
     src/taskactivityservice.cpp src/taskactivityservice.h src/islandcontrol.cpp src/islandcontrol.h
-    src/sessionstate.cpp src/sessionstate.h src/notificationsservice.cpp src/notificationsservice.h)
+    src/sessionstate.cpp src/sessionstate.h src/notificationsservice.cpp src/notificationsservice.h
+    src/languageservice.cpp src/languageservice.h)
 qt_add_library(kestrel-core STATIC ${KESTREL_SOURCES})
 target_link_libraries(kestrel-core PUBLIC Qt6::Quick Qt6::QuickControls2 Qt6::Widgets Qt6::DBus Qt6::Network LayerShellQt::Interface)
 target_include_directories(kestrel-core PUBLIC src)
