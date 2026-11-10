@@ -88,19 +88,22 @@ Item {
                 columnSpacing: 10
                 rowSpacing: 10
                 Repeater {
-                    model: view.cards
+                    // The card count, not the freshly built card array: the
+                    // delegates then keep their identity as the 1 s sample
+                    // arrives and their meters animate instead of flashing.
+                    model: view.cards.length
                     MetricCard {
-                        required property var modelData
                         required property int index
+                        readonly property var card: view.cards[index] || ({})
                         Layout.fillWidth: true
                         Layout.columnSpan: view.cards.length % 2 === 1 && index === view.cards.length - 1 ? 2 : 1
-                        title: modelData.title
-                        symbol: modelData.symbol
-                        value: modelData.value
-                        subtitle: modelData.subtitle
-                        meter: modelData.meter
-                        meterTint: modelData.meterTint
-                        attention: modelData.attention
+                        title: card.title || ""
+                        symbol: card.symbol || ""
+                        value: card.value || ""
+                        subtitle: card.subtitle || ""
+                        meter: card.meter ?? -1
+                        meterTint: card.meterTint || Theme.accent
+                        attention: card.attention === true
                     }
                 }
             }

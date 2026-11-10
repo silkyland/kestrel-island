@@ -552,6 +552,40 @@ private slots:
     QTRY_COMPARE(footer->mapToItem(surface, QPointF(0, footer->height())).y(),
                  before);
   }
+  void systemCardsKeepTheirIdentityAcrossSamples() {
+    Backend backend;
+    QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty("island", &backend);
+    engine.rootContext()->setContextProperty("previewMode", true);
+    engine.rootContext()->setContextProperty("startExpanded", true);
+    engine.load(QUrl("qrc:/qml/Main.qml"));
+    QVERIFY(!engine.rootObjects().isEmpty());
+    auto *root = qobject_cast<QQuickWindow *>(engine.rootObjects().first());
+    root->setProperty("page", 2);
+    root->show();
+    QVERIFY(QTest::qWaitForWindowExposed(root));
+    auto *grid = root->findChild<QQuickItem *>("systemTemperatures");
+    QVERIFY(grid);
+    auto cards = [grid]() {
+      QList<QQuickItem *> out;
+      for (auto *child : grid->childItems())
+        if (child->objectName() == "metricCard")
+          out.append(child);
+      return out;
+    };
+    QTRY_VERIFY(!cards().isEmpty());
+    // Let the first full sample settle (nvidia-smi is asynchronous).
+    QTest::qWait(1800);
+    const auto before = cards();
+    const auto sample = backend.statistics().value("sampledAt").toLongLong();
+    QVERIFY(sample > 0);
+    QTRY_VERIFY_WITH_TIMEOUT(
+        backend.statistics().value("sampledAt").toLongLong() != sample, 3000);
+    QTest::qWait(60);
+    // A fresh sample must update the existing delegates, not rebuild them.
+    QCOMPARE(cards(), before);
+    backend.setPreferredPage(0);
+  }
   void escapeStepsBackToToolsBeforeCollapsing() {
     Backend backend(nullptr, false);
     QQmlApplicationEngine engine;

@@ -162,3 +162,9 @@ The user supplied Vorssaint's expanded timer/sections screenshots and chose the 
 Tests: `allPagesKeepNavigationAndFooterInsideShape` expects Focus 216, checks the mode picker leads the timer header, and still verifies the start action reaches the FocusSession; clicking Pomodoro grows the page to 240 and keeps the break controls centred. All four CTest suites pass. Countdown, Pomodoro and running states were rendered offscreen and reviewed; the Pomodoro empty state is 240 px, not 216.
 
 Acceptance boundary: no Stopwatch mode (the backend has no counting-up session) and no overflow menu; the ruler's 180-minute range is reachable by drag/keys but the visible window is about 23 minutes, which is the reference behaviour.
+
+### Steady system cards (0.6, follow-up)
+
+The System grid flickered once a second because its Repeater used the freshly built `cards` array as the model; every `island.statistics` sample recreated the array and the Repeater destroyed and rebuilt all delegates, resetting their meter Behaviors. The model is now `view.cards.length`, and each delegate reads `view.cards[index]`, so cards keep their identity and update in place. The meter eases to its new value over 420 ms OutCubic and the attention colour crossfades over 320 ms.
+
+`systemCardsKeepTheirIdentityAcrossSamples` opens the real System page, settles the first full sample (nvidia-smi is asynchronous), captures the card pointers, waits for the next `sampledAt`, and compares the same objects. All four suites pass.

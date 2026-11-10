@@ -50,6 +50,7 @@ Rectangle {
             font.pixelSize: 20
             font.weight: Font.Medium
             elide: Text.ElideRight
+            Behavior on color { ColorAnimation { duration: Theme.dur(320) } }
         }
         Rectangle {
             Layout.fillWidth: true
@@ -62,7 +63,8 @@ Rectangle {
                 height: parent.height
                 radius: 1.5
                 color: card.attention ? Theme.warn : card.meterTint
-                Behavior on width { NumberAnimation { duration: Theme.dur(200); easing.type: Easing.OutCubic } }
+                Behavior on width { NumberAnimation { duration: Theme.dur(420); easing.type: Easing.OutCubic } }
+                Behavior on color { ColorAnimation { duration: Theme.dur(320) } }
             }
         }
         Text {
