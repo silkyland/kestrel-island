@@ -148,3 +148,17 @@ The user asked for deploy and run. `build/kestrel-island` (sha256 `03a64b76…`)
 A live `--check-session` on the real session reported `exposed=true`, `platform=wayland`, `screen=DP-2`, `presentationLayer=2` (LayerTop), `keyboardInteractivity=0`, compact input-region height 40, audio available and volume 51. The log (`~/.local/state/kestrel-island.log`) is empty. No desktop screenshot was taken; the offscreen renders stand in for the expanded states.
 
 Rollback: stop the process, restore the `.bak-25691110-213526` file over `~/.local/bin/kestrel-island`, and relaunch.
+
+## Timer page in the Vorssaint language (0.6)
+
+The user supplied Vorssaint's expanded timer/sections screenshots and chose the timer pilot. This pass applies the timer's visual language to Focus while keeping the notch form: the floating panel, side rails and launcher grid in those screenshots are a different product and were not copied.
+
+- Focus measures 216 px in Countdown and 240 px in Pomodoro. The surface height reads `focusPage.pomodoro`, so selecting Pomodoro grows the island by the 28 px break row; Countdown stays compact.
+- The header carries the Countdown/Pomodoro words with a 2 px amber underline and a single 28 px Start capsule (amber text on 18% amber). The old duration stepper, 25/50 presets and full-width Start button are gone.
+- `TimerRuler.qml` is the setting control: 1–180 minutes at 12 px per minute, the selected minute under a fixed pointer, 4 × 38 px amber ticks, every fifth minute labelled, edge fades, drag at one minute per 12 px, click-to-jump, wheel and Left/Right/Home/End keys, and an Accessible slider name. It emits `picked`; `FocusView` owns the value, so a 180-minute session remains reachable.
+- The setup sits 12 px under the header: ruler filling the row beside the 34 px clock. A running session replaces it with the 46 px `RollingText` clock, its phase and a Pause capsule; the header keeps only the X cancel. Completed sessions show "Session complete", the next phase and Dismiss.
+- The timer token moved from the pastel `#ffc078` to the reference's saturated amber `#f5a524`; `TimerPill.qml` is the one amber capsule. Lavender remains the music/focus-ring colour.
+
+Tests: `allPagesKeepNavigationAndFooterInsideShape` expects Focus 216, checks the mode picker leads the timer header, and still verifies the start action reaches the FocusSession; clicking Pomodoro grows the page to 240 and keeps the break controls centred. All four CTest suites pass. Countdown, Pomodoro and running states were rendered offscreen and reviewed; the Pomodoro empty state is 240 px, not 216.
+
+Acceptance boundary: no Stopwatch mode (the backend has no counting-up session) and no overflow menu; the ruler's 180-minute range is reachable by drag/keys but the visible window is about 23 minutes, which is the reference behaviour.

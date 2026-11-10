@@ -89,7 +89,7 @@ Window {
         anchors.horizontalCenter: parent.horizontalCenter
         objectName: "islandSurface"
         width: root.expanded ? (root.page === 2 ? (systemPage.details ? 560 : 520) : root.page === 0 ? 424 : 456) : (root.peek || root.noticeBump ? 316 : 288)
-        height: root.expanded ? ((root.page === 2 ? (systemPage.details ? 568 : 432) : root.page === 3 ? 400 : root.page === 1 || root.page === 5 || root.page === 6 ? 384 : root.page === 4 ? 336 : root.page === 0 ? (island.media.durationUs > 0 ? 254 : 216) : 288) + root.messageHeight) : (root.peek || root.noticeBump ? 54 : 40)
+        height: root.expanded ? ((root.page === 2 ? (systemPage.details ? 568 : 432) : root.page === 3 ? 400 : root.page === 1 ? (focusPage.pomodoro ? 240 : 216) : root.page === 5 || root.page === 6 ? 384 : root.page === 4 ? 336 : root.page === 0 ? (island.media.durationUs > 0 ? 254 : 216) : 288) + root.messageHeight) : (root.peek || root.noticeBump ? 54 : 40)
         clip: true
         Behavior on width { NumberAnimation { duration: Theme.dur(280); easing.type: Easing.OutCubic } }
         Behavior on height { NumberAnimation { duration: Theme.dur(280); easing.type: Easing.OutCubic } }
@@ -343,7 +343,7 @@ Window {
 
                 MediaView {}
 
-                FocusView {}
+                FocusView { id: focusPage }
 
                 SystemView { id: systemPage }
                 Item {

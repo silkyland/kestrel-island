@@ -13,7 +13,7 @@ QtObject {
     readonly property color track: "#303035"
     readonly property color accent: "#b8a1ff"
     readonly property color accentInk: "#16121e"
-    readonly property color timer: "#ffc078"
+    readonly property color timer: "#f5a524"
     readonly property color ok: "#9dd7b1"
     readonly property color info: "#95bfff"
     readonly property color warn: "#e8bf8b"

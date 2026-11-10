@@ -378,7 +378,7 @@ private slots:
     auto *footer = root->findChild<QQuickItem *>("audioFooter");
     auto *slider = root->findChild<QQuickItem *>("volumeSlider");
     QVERIFY(surface && navigation && tabs && actions && footer && slider);
-    const QList<int> heights{216, 384, 432, 400, 336, 384, 384, 288};
+    const QList<int> heights{216, 216, 432, 400, 336, 384, 384, 288};
     for (int page = 0; page < 8; ++page) {
       root->setProperty("page", page);
       QTRY_COMPARE(surface->height(), double(heights[page]));
@@ -486,11 +486,10 @@ private slots:
     auto *modeOptions =
         findVisualItem(root->contentItem(), "focusModeOptions");
     QVERIFY(modeOptions);
-    const auto modeCenter =
-        modeOptions->mapToItem(modeOptions->parentItem(),
-                               QPointF(modeOptions->width() / 2, 0))
-            .x();
-    QVERIFY(qAbs(modeCenter - modeOptions->parentItem()->width() / 2) < 1.0);
+    const auto modeLeft =
+        modeOptions->mapToItem(modeOptions->parentItem(), QPointF()).x();
+    QVERIFY2(qAbs(modeLeft) < 1.0,
+             "The mode picker should lead the timer header");
     auto *durationControls =
         root->findChild<QQuickItem *>("focusDurationControls");
     QVERIFY(durationControls);
@@ -505,7 +504,7 @@ private slots:
     QVERIFY(mode && start);
     QVERIFY(QMetaObject::invokeMethod(mode, "clicked"));
     QVERIFY(mode->property("checked").toBool());
-    QTRY_COMPARE(surface->height(), 384.0);
+    QTRY_COMPARE(surface->height(), 240.0);
     QTest::qWait(30);
     auto *breakControls =
         root->findChild<QQuickItem *>("focusPomodoroControls");

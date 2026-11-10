@@ -39,3 +39,7 @@ User explicitly requested real CPU/GPU use, RAM remaining and disk used/free, pl
 ## Music parity (0.5)
 
 The user reported the music page as visually broken and asked for it to read like Vorssaint's Dynamic Island player one-to-one, with the missing features added. The music surface is now one player block: 56 px cover, 14/13 px title and artist, elapsed/remaining timeline, five equal transport places with shuffle and repeat beside the transport, and the volume row inside the player. The page is 254 px tall when a timeline exists and 216 px when it does not. Page tabs sit at the leading edge and island actions at the trailing edge. Shuffle and repeat come from MPRIS and appear only when the player publishes them; no manual source picker or browser identity returns.
+
+## Timer language (0.6)
+
+The user asked for the island's timer page to carry Vorssaint's Timer composition while keeping the notch form. Focus now leads with a Countdown/Pomodoro switch and a single amber Start capsule, sets the duration on a draggable minute ruler (1–180) beside the clock, and adds one quiet break row in Pomodoro. The page is 216 px tall in Countdown and 240 px in Pomodoro; the running session shows only the 46 px clock, its phase and Pause. Every timer surface uses the saturated amber token rather than the earlier pastel; lavender stays with the music and focus rings.
